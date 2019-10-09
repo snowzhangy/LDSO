@@ -3,15 +3,13 @@
 #include <csignal>
 #include <cstdlib>
 #include <cstdio>
-#include <unistd.h>
-#include <sys/time.h>
 
 #include <glog/logging.h>
 
 #include "frontend/FullSystem.h"
 #include "DatasetReader.h"
 
-using namespace std;
+
 using namespace ldso;
 
 /*********************************************************************************
@@ -239,7 +237,7 @@ void parseArgument(char *arg) {
 
     if (1 == sscanf(arg, "mode=%d", &option)) {
         if (option != 1) {
-            LOG(ERROR) << "EuRoC does not have photometric intrinsics! I will exit!" << endl;
+            LOG(ERROR) << "EuRoC does not have photometric intrinsics! I will exit!" << std::endl;
             exit(-1);
         }
         return;
@@ -247,7 +245,7 @@ void parseArgument(char *arg) {
 
     if (1 == sscanf(arg, "output=%s", buf)) {
         output_file = buf;
-        LOG(INFO) << "output set to " << output_file << endl;
+        LOG(INFO) << "output set to " << output_file << std::endl;
         return;
     }
 
@@ -262,7 +260,7 @@ int main(int argc, char **argv) {
     // check setting conflicts
     if (setting_enableLoopClosing && (setting_pointSelection != 1)) {
         LOG(ERROR) << "Loop closing is enabled but point selection strategy is not set to LDSO, "
-                      "use setting_pointSelection=1! please!" << endl;
+                      "use setting_pointSelection=1! please!" << std::endl;
         exit(-1);
     }
 
@@ -275,7 +273,7 @@ int main(int argc, char **argv) {
     setting_affineOptModeA = 0; //-1: fix. >=0: optimize (with prior, if > 0).
     setting_affineOptModeB = 0; //-1: fix. >=0: optimize (with prior, if > 0).
 
-    shared_ptr<ImageFolderReader> reader(
+    std::shared_ptr<ImageFolderReader> reader(
             new ImageFolderReader(ImageFolderReader::KITTI, source, calib, "", ""));    // no gamma and vignette
 
     reader->setGlobalCalibration();
@@ -293,19 +291,19 @@ int main(int argc, char **argv) {
         linc = -1;
     }
 
-    shared_ptr<ORBVocabulary> voc(new ORBVocabulary());
+    std::shared_ptr<ORBVocabulary> voc(new ORBVocabulary());
     voc->load(vocPath);
 
-    shared_ptr<FullSystem> fullSystem(new FullSystem(voc));
+    std::shared_ptr<FullSystem> fullSystem(new FullSystem(voc));
     fullSystem->setGammaFunction(reader->getPhotometricGamma());
     fullSystem->linearizeOperation = (playbackSpeed == 0);
 
-    shared_ptr<PangolinDSOViewer> viewer = nullptr;
+    std::shared_ptr<PangolinDSOViewer> viewer = nullptr;
     if (!disableAllDisplay) {
-        viewer = shared_ptr<PangolinDSOViewer>(new PangolinDSOViewer(wG[0], hG[0], false));
+        viewer = std::shared_ptr<PangolinDSOViewer>(new PangolinDSOViewer(wG[0], hG[0], false));
         fullSystem->setViewer(viewer);
     } else {
-        LOG(INFO) << "visualization is diabled!" << endl;
+        LOG(INFO) << "visualization is diabled!" << std::endl;
     }
 
     // to make MacOS happy: run this in dedicated thread -- and use this one to run the GUI.
@@ -333,10 +331,9 @@ int main(int argc, char **argv) {
             }
         }
 
-        struct timeval tv_start;
-        gettimeofday(&tv_start, NULL);
-        clock_t started = clock();
-        double sInitializerOffset = 0;
+		auto tv_start = std::chrono::steady_clock::now();
+		clock_t started = clock();
+		double sInitializerOffset = 0;
 
 
         for (int ii = 0; ii < (int) idsToPlay.size(); ii++) {
@@ -346,9 +343,9 @@ int main(int argc, char **argv) {
             }
             if (!fullSystem->initialized)    // if not initialized: reset start time.
             {
-                gettimeofday(&tv_start, NULL);
-                started = clock();
-                sInitializerOffset = timesToPlayAt[ii];
+				tv_start = std::chrono::steady_clock::now();
+				started = clock();
+				sInitializerOffset = timesToPlayAt[ii];
             }
 
             int i = idsToPlay[ii];
@@ -362,12 +359,15 @@ int main(int argc, char **argv) {
 
             bool skipFrame = false;
             if (playbackSpeed != 0) {
-                struct timeval tv_now;
-                gettimeofday(&tv_now, NULL);
-                double sSinceStart = sInitializerOffset + ((tv_now.tv_sec - tv_start.tv_sec) +
-                                                           (tv_now.tv_usec - tv_start.tv_usec) / (1000.0f * 1000.0f));
+				auto tv_now = std::chrono::steady_clock::now();
 
-                if (sSinceStart < timesToPlayAt[ii]) {
+				std::chrono::duration<double, std::milli> fp_ms = tv_now - tv_start;
+				std::chrono::duration<double, std::micro> fp_us = fp_ms;
+
+				//(tv_now.tv_sec - tv_start.tv_sec)
+				double sSinceStart = sInitializerOffset + (fp_ms.count() / 1000.0f) + (fp_us.count() / (1000.0f * 1000.0f));
+
+				if (sSinceStart < timesToPlayAt[ii]) {
                     // usleep((int) ((timesToPlayAt[ii] - sSinceStart) * 1000 * 1000));
                 } else if (sSinceStart > timesToPlayAt[ii] + 0.5 + 0.1 * (ii % 2)) {
                     printf("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
             if (fullSystem->initFailed || setting_fullResetRequested) {
                 if (ii < 250 || setting_fullResetRequested) {
                     LOG(INFO) << "RESETTING!";
-                    fullSystem = shared_ptr<FullSystem>(new FullSystem(voc));
+                    fullSystem = std::shared_ptr<FullSystem>(new FullSystem(voc));
                     fullSystem->setGammaFunction(reader->getPhotometricGamma());
                     fullSystem->linearizeOperation = (playbackSpeed == 0);
                     if (viewer) {
@@ -401,20 +401,20 @@ int main(int argc, char **argv) {
 
         fullSystem->blockUntilMappingIsFinished();
 
-        clock_t ended = clock();
-        struct timeval tv_end;
-        gettimeofday(&tv_end, NULL);
+		clock_t ended = clock();
+		auto tv_end = std::chrono::steady_clock::now();
 
-        // in Kitti, the scale drift is obvious, so we only save the trajectory after loop closing.
-        fullSystem->printResultKitti(output_file, true);
-        fullSystem->printResultKitti(output_file + ".noloop", false);
+		std::chrono::duration<double, std::milli> fp_ms = tv_end - tv_start;
+		std::chrono::duration<double, std::micro> fp_us = fp_ms;
 
-        int numFramesProcessed = abs(idsToPlay[0] - idsToPlay.back());
-        double numSecondsProcessed = fabs(reader->getTimestamp(idsToPlay[0]) - reader->getTimestamp(idsToPlay.back()));
-        double MilliSecondsTakenSingle = 1000.0f * (ended - started) / (float) (CLOCKS_PER_SEC);
-        double MilliSecondsTakenMT = sInitializerOffset + ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f +
-                                                           (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f);
-        printf("\n======================"
+		// for evaluation, we print the result before loop closing and after loop closing
+		fullSystem->printResult(output_file, true);
+
+		int numFramesProcessed = abs(idsToPlay[0] - idsToPlay.back());
+		double numSecondsProcessed = fabs(reader->getTimestamp(idsToPlay[0]) - reader->getTimestamp(idsToPlay.back()));
+		double MilliSecondsTakenSingle = 1000.0f * (ended - started) / (float)(CLOCKS_PER_SEC);
+		double MilliSecondsTakenMT = sInitializerOffset + fp_ms.count() + (fp_us.count() / 1000.0f);
+		printf("\n======================"
                "\n%d Frames (%.1f fps)"
                "\n%.2fms per frame (single core); "
                "\n%.2fms per frame (multi core); "
@@ -427,12 +427,11 @@ int main(int argc, char **argv) {
                1000 / (MilliSecondsTakenSingle / numSecondsProcessed),
                1000 / (MilliSecondsTakenMT / numSecondsProcessed));
         if (setting_logStuff) {
-            std::ofstream tmlog;
-            tmlog.open("logs/time.txt", std::ios::trunc | std::ios::out);
-            tmlog << 1000.0f * (ended - started) / (float) (CLOCKS_PER_SEC * reader->getNumImages()) << " "
-                  << ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f + (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f) /
-                     (float) reader->getNumImages() << "\n";
-            tmlog.flush();
+			std::ofstream tmlog;
+			tmlog.open("logs/time.txt", std::ios::trunc | std::ios::out);
+			tmlog << 1000.0f * (ended - started) / (float)(CLOCKS_PER_SEC * reader->getNumImages()) << " "
+				<< (fp_ms.count() + (fp_us.count() / 1000.0f)) / (float)reader->getNumImages() << "\n";
+			tmlog.flush();
             tmlog.close();
         }
     });

@@ -10,7 +10,7 @@ namespace ldso {
 
     namespace internal {
 
-        double PointFrameResidual::linearize(shared_ptr<CalibHessian> &HCalib) {
+        double PointFrameResidual::linearize(std::shared_ptr<CalibHessian> &HCalib) {
 
             // compute jacobians
             state_NewEnergyWithOutlier = -1;
@@ -20,9 +20,9 @@ namespace ldso {
                 return state_energy;
             }
 
-            shared_ptr<FrameHessian> f = host.lock();
-            shared_ptr<FrameHessian> ftarget = target.lock();
-            shared_ptr<PointHessian> fPoint = point.lock();
+			std::shared_ptr<FrameHessian> f = host.lock();
+			std::shared_ptr<FrameHessian> ftarget = target.lock();
+			std::shared_ptr<PointHessian> fPoint = point.lock();
             FrameFramePrecalc *precalc = &(f->targetPrecalc[ftarget->idx]);
 
             float energyLeft = 0;
@@ -53,7 +53,7 @@ namespace ldso {
                 Vec3f KliP;
 
                 // 重投影
-                shared_ptr<PointHessian> p = point.lock();
+				std::shared_ptr<PointHessian> p = point.lock();
                 if (!projectPoint(p->u, p->v, p->idepth_zero_scaled, 0, 0, HCalib,
                                   PRE_RTll_0, PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth)) {
                     state_NewState = ResState::OOB;
@@ -125,7 +125,7 @@ namespace ldso {
 
             for (int idx = 0; idx < patternNum; idx++) {
                 float Ku, Kv;
-                shared_ptr<PointHessian> p = point.lock();
+				std::shared_ptr<PointHessian> p = point.lock();
                 if (!projectPoint(p->u + patternP[idx][0], p->v + patternP[idx][1], p->idepth_scaled,
                                   PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
                     state_NewState = ResState::OOB;
@@ -206,14 +206,14 @@ namespace ldso {
                 energyLeft = std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH);
                 state_NewState = ResState::OUTLIER;
             } else {
-                state_NewState = ResState::IN;
+                state_NewState = ResState::INN;
             }
 
             state_NewEnergy = energyLeft;
             return energyLeft;
         }
 
-        void PointFrameResidual::fixLinearizationF(shared_ptr<EnergyFunctional> ef) {
+        void PointFrameResidual::fixLinearizationF(std::shared_ptr<EnergyFunctional> ef) {
 
             Vec8f dp = ef->adHTdeltaF[hostIDX + ef->nFrames * targetIDX];
 
@@ -240,154 +240,6 @@ namespace ldso {
 
             isLinearized = true;
         }
-
-        /*
-        double FeatureObsResidual::linearize(shared_ptr<CalibHessian> &HCalib) {
-
-            // compute jacobians
-            state_NewEnergyWithOutlier = -1;
-            if (state_state == ResState::OOB) { // 当前状态已经位于外边
-                state_NewState = ResState::OOB;
-                return state_energy;
-            }
-
-            shared_ptr<FrameHessian> f = host.lock();
-            shared_ptr<FrameHessian> ftarget = target.lock();
-            shared_ptr<PointHessian> fPoint = point.lock();
-
-            FrameFramePrecalc *precalc = &(f->targetPrecalc[ftarget->idx]);
-
-            float energyLeft = 0;
-            const Eigen::Vector3f *dIl = ftarget->dI;
-            const Mat33f &PRE_KRKiTll = precalc->PRE_KRKiTll;
-            const Vec3f &PRE_KtTll = precalc->PRE_KtTll;
-            const Mat33f &PRE_RTll_0 = precalc->PRE_RTll_0;
-            const Vec3f &PRE_tTll_0 = precalc->PRE_tTll_0;
-            const float *const color = fPoint->color;
-            const float *const weights = fPoint->weights;
-
-            Vec2f affLL = precalc->PRE_aff_mode;
-            float b0 = precalc->PRE_b0_mode;
-
-            // 李代数到xy的导数
-            Vec6f d_xi_x, d_xi_y;
-
-            // Calib到xy的导数
-            Vec4f d_C_x, d_C_y;
-
-            // xy 到 idepth 的导数
-            float d_d_x, d_d_y;
-
-            float drescale, u, v, new_idepth;  // data in target
-            // NOTE u = X/Z, v=Y/Z in target
-            float Ku, Kv;
-            Vec3f KliP;
-
-            // 重投影
-            shared_ptr<PointHessian> p = point.lock();
-            if (!projectPoint(p->u, p->v, p->idepth_zero_scaled, 0, 0, HCalib,
-                              PRE_RTll_0, PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth)) {
-                state_NewState = ResState::OOB;
-                return state_energy;
-            }
-
-            // 各种导数
-            // diff d_idepth
-            d_d_x = drescale * (PRE_tTll_0[0] - PRE_tTll_0[2] * u) * SCALE_IDEPTH * HCalib->fxl();
-            d_d_y = drescale * (PRE_tTll_0[1] - PRE_tTll_0[2] * v) * SCALE_IDEPTH * HCalib->fyl();
-
-            // diff calib
-            d_C_x[2] = drescale * (PRE_RTll_0(2, 0) * u - PRE_RTll_0(0, 0));
-            d_C_x[3] = HCalib->fxl() * drescale * (PRE_RTll_0(2, 1) * u - PRE_RTll_0(0, 1)) * HCalib->fyli();
-            d_C_x[0] = KliP[0] * d_C_x[2];
-            d_C_x[1] = KliP[1] * d_C_x[3];
-
-            d_C_y[2] = HCalib->fyl() * drescale * (PRE_RTll_0(2, 0) * v - PRE_RTll_0(1, 0)) * HCalib->fxli();
-            d_C_y[3] = drescale * (PRE_RTll_0(2, 1) * v - PRE_RTll_0(1, 1));
-            d_C_y[0] = KliP[0] * d_C_y[2];
-            d_C_y[1] = KliP[1] * d_C_y[3];
-
-            d_C_x[0] = (d_C_x[0] + u) * SCALE_F;
-            d_C_x[1] *= SCALE_F;
-            d_C_x[2] = (d_C_x[2] + 1) * SCALE_C;
-            d_C_x[3] *= SCALE_C;
-
-            d_C_y[0] *= SCALE_F;
-            d_C_y[1] = (d_C_y[1] + v) * SCALE_F;
-            d_C_y[2] *= SCALE_C;
-            d_C_y[3] = (d_C_y[3] + 1) * SCALE_C;
-
-            // xy到李代数的导数，形式见十四讲
-            d_xi_x[0] = new_idepth * HCalib->fxl();
-            d_xi_x[1] = 0;
-            d_xi_x[2] = -new_idepth * u * HCalib->fxl();
-            d_xi_x[3] = -u * v * HCalib->fxl();
-            d_xi_x[4] = (1 + u * u) * HCalib->fxl();
-            d_xi_x[5] = -v * HCalib->fxl();
-
-            d_xi_y[0] = 0;
-            d_xi_y[1] = new_idepth * HCalib->fyl();
-            d_xi_y[2] = -new_idepth * v * HCalib->fyl();
-            d_xi_y[3] = -(1 + v * v) * HCalib->fyl();
-            d_xi_y[4] = u * v * HCalib->fyl();
-            d_xi_y[5] = u * HCalib->fyl();
-
-
-            J->Jpdxi[0] = d_xi_x;
-            J->Jpdxi[1] = d_xi_y;
-
-            J->Jpdc[0] = d_C_x;
-            J->Jpdc[1] = d_C_y;
-
-            J->Jpdd[0] = d_d_x;
-            J->Jpdd[1] = d_d_y;
-
-            Vec2f residual = Vec2f(Ku, Kv) - obsPixel;
-            // LOG(INFO) << "proj: " << Ku << ", " << Kv << ", obs: " << obsPixel[0] << ", " << obsPixel[1] << ", res="
-            // << residual.transpose() << endl;
-            float residualNorm = residual.squaredNorm();
-            float w = 1;
-
-            // huber weight
-            float hw = fabsf(residualNorm) < setting_huberTH ? 1 : setting_huberTH / fabsf(residualNorm);
-            energyLeft += w * w * hw * residual.dot(residual) * (2 - hw);
-
-            if (hw < 1) hw = sqrtf(hw);
-            hw = hw * w;
-            J->resF = hw * residual;
-
-            state_NewEnergyWithOutlier = energyLeft;
-
-            if (energyLeft > std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH)) {
-                energyLeft = std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH);
-                state_NewState = ResState::OUTLIER;
-            } else {
-                state_NewState = ResState::IN;
-            }
-
-            // LOG(INFO) << "Energy = " << energyLeft << endl;
-            state_NewEnergy = energyLeft;
-            return energyLeft;
-        }
-
-        void FeatureObsResidual::fixLinearizationF(shared_ptr<EnergyFunctional> ef) {
-
-            Vec8f dp = ef->adHTdeltaF[hostIDX + ef->nFrames * targetIDX];
-
-            // compute Jp*delta
-            float Jp_delta_x = (J->Jpdxi[0].dot(dp.head<6>())
-                                + J->Jpdc[0].dot(ef->cDeltaF)
-                                + J->Jpdd[0] * point.lock()->deltaF);
-            float Jp_delta_y = (J->Jpdxi[1].dot(dp.head<6>())
-                                + J->Jpdc[1].dot(ef->cDeltaF)
-                                + J->Jpdd[1] * point.lock()->deltaF);
-
-            res_toZeroF[0] = Jp_delta_x + J->resF[0];
-            res_toZeroF[1] = Jp_delta_y + J->resF[1];
-            isLinearized = true;
-        }
-         */
-
     }
 
 }

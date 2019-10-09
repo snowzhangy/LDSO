@@ -21,7 +21,7 @@
 #include "internal/IndexThreadReduce.h"
 #include "LoopClosing.h"
 
-using namespace std;
+
 using namespace ldso;
 using namespace ldso::internal;
 
@@ -56,7 +56,7 @@ namespace ldso {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-        FullSystem(shared_ptr<ORBVocabulary> voc);
+        FullSystem(std::shared_ptr<ORBVocabulary> voc);
 
         ~FullSystem();
 
@@ -87,10 +87,10 @@ namespace ldso {
         void shutDown();
 
         /// save all information into a binary file
-        bool saveAll(const string &filename);
+        bool saveAll(const std::string &filename);
 
         /// load all information from a binary file
-        bool loadAll(const string &filename);
+        bool loadAll(const std::string &filename);
 
         // state variables
         bool isLost = false;        // if system is lost, note that dso CANNOT recover from lost
@@ -99,12 +99,12 @@ namespace ldso {
         bool linearizeOperation = true; // this is something controls if the optimization runs in a single thread,
         // but why it is called linerizeOperation...?
 
-        shared_ptr<CoarseDistanceMap> GetDistanceMap() {
+		std::shared_ptr<CoarseDistanceMap> GetDistanceMap() {
             return coarseDistanceMap;
         }
 
-        vector<shared_ptr<Frame>> GetActiveFrames() {
-            unique_lock<mutex> lck(framesMutex);
+		std::vector<std::shared_ptr<Frame>> GetActiveFrames() {
+			std::unique_lock<std::mutex> lck(framesMutex);
             return frames;
         }
 
@@ -120,21 +120,21 @@ namespace ldso {
 
         /// marginalizes a frame. drops / marginalizes points & residuals.
         /// residuals will be dropped, but we still have this frame in the memory
-        void marginalizeFrame(shared_ptr<Frame> &frame);
+        void marginalizeFrame(std::shared_ptr<Frame> &frame);
 
         /**
          * track a new frame and estimate the pose and affine light parameters
          * @param fh new frame
          * @return a 4-vector which has some tracking status information, used to judge if we need a keyframe
          */
-        Vec4 trackNewCoarse(shared_ptr<FrameHessian> fh);
+        Vec4 trackNewCoarse(std::shared_ptr<FrameHessian> fh);
 
         /**
          * trace immature points into new frames, maybe keyframe or not key-frame, to update the immature point status
          * fh's pose should be estimated, otherwise trace does not make sense
          * @param fh
          */
-        void traceNewCoarse(shared_ptr<FrameHessian> fh);
+        void traceNewCoarse(std::shared_ptr<FrameHessian> fh);
 
         /**
          * activate point, turn the immature into real points and insert residuals into backend
@@ -147,7 +147,7 @@ namespace ldso {
          * will call optimizeImmaturePoint in a multi-thread way
          */
         void activatePointsMT_Reductor(
-            std::vector<shared_ptr<PointHessian>> *optimized, std::vector<shared_ptr<ImmaturePoint>> *toOptimize,
+            std::vector<std::shared_ptr<PointHessian>> *optimized, std::vector<std::shared_ptr<ImmaturePoint>> *toOptimize,
             int min, int max, Vec10 *stats, int tid);
 
         /**
@@ -157,9 +157,9 @@ namespace ldso {
          * @param[in] residuals the residual of this immature point over other frames, so the size should be frames.size()-1
          * @return nullptr if not converged, or a newly created point hessian if converged.
          */
-        shared_ptr<PointHessian>
-        optimizeImmaturePoint(shared_ptr<internal::ImmaturePoint> point, int minObs,
-                              vector<shared_ptr<ImmaturePointTemporaryResidual>> &residuals);
+		std::shared_ptr<PointHessian>
+        optimizeImmaturePoint(std::shared_ptr<internal::ImmaturePoint> point, int minObs,
+                              std::vector<std::shared_ptr<ImmaturePointTemporaryResidual>> &residuals);
 
         /**
          * add new immature points and their residuals
@@ -167,19 +167,19 @@ namespace ldso {
          * @param newFrame
          * @param gtDepth
          */
-        void makeNewTraces(shared_ptr<FrameHessian> newFrame, float *gtDepth);
+        void makeNewTraces(std::shared_ptr<FrameHessian> newFrame, float *gtDepth);
 
         /**
          * initialize from the coarse initializer
          * @param newFrame
          */
-        void initializeFromInitializer(shared_ptr<FrameHessian> newFrame);
+        void initializeFromInitializer(std::shared_ptr<FrameHessian> newFrame);
 
         /**
          * set the marginalization flag for frames need to be margined
          * @param newFH
          */
-        void flagFramesForMarginalization(shared_ptr<FrameHessian> &newFH);
+        void flagFramesForMarginalization(std::shared_ptr<FrameHessian> &newFH);
 
         /**
          * Set the map point status according to residuals and host frames
@@ -214,7 +214,7 @@ namespace ldso {
 
         // reducer for multi-threading
         void
-        linearizeAll_Reductor(bool fixLinearization, std::vector<shared_ptr<PointFrameResidual>> *toRemove, int min,
+        linearizeAll_Reductor(bool fixLinearization, std::vector<std::shared_ptr<PointFrameResidual>> *toRemove, int min,
                               int max,
                               Vec10 *stats, int tid);
 
@@ -245,14 +245,14 @@ namespace ldso {
         void setNewFrameEnergyTH();
 
         /// make a new keyframe
-        void makeKeyFrame(shared_ptr<FrameHessian> fh);
+        void makeKeyFrame(std::shared_ptr<FrameHessian> fh);
 
         /// make an ordinary frame
-        void makeNonKeyFrame(shared_ptr<FrameHessian> &fh);
+        void makeNonKeyFrame(std::shared_ptr<FrameHessian> &fh);
 
         /// deliver the tracked frame to makeKeyFrame/makeNonKeyFrame
         /// if we do linearization, here we will call makekeyframe /makeNonKeyFrame, otherwise, they are called in mapping loop
-        void deliverTrackedFrame(shared_ptr<FrameHessian> fh, bool needKF);
+        void deliverTrackedFrame(std::shared_ptr<FrameHessian> fh, bool needKF);
 
         /**
          * mapping loop is running in a single thread
@@ -264,73 +264,73 @@ namespace ldso {
                          float b);
 
     public:
-        shared_ptr<Camera> Hcalib = nullptr;    // calib information
+		std::shared_ptr<Camera> Hcalib = nullptr;    // calib information
 
     private:
         // data
         // =================== changed by tracker-thread. protected by trackMutex ============
-        mutex trackMutex;
-        shared_ptr<CoarseInitializer> coarseInitializer = nullptr;
+		std::mutex trackMutex;
+		std::shared_ptr<CoarseInitializer> coarseInitializer = nullptr;
         Vec5 lastCoarseRMSE;
-        vector<shared_ptr<Frame>> allFrameHistory;      // all recorded frames
+		std::vector<std::shared_ptr<Frame>> allFrameHistory;      // all recorded frames
 
         // ================== changed by mapper-thread. protected by mapMutex ===============
-        mutex mapMutex;
+		std::mutex mapMutex;
 
         // =================================================================================== //
-        shared_ptr<EnergyFunctional> ef = nullptr;        // optimization
+		std::shared_ptr<EnergyFunctional> ef = nullptr;        // optimization
         IndexThreadReduce<Vec10> threadReduce;            // multi thread reducing
 
-        shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr;  // coarse distance map
-        shared_ptr<PixelSelector> pixelSelector = nullptr;          // pixel selector
+		std::shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr;  // coarse distance map
+		std::shared_ptr<PixelSelector> pixelSelector = nullptr;          // pixel selector
         float *selectionMap = nullptr;                              // selection map
 
         // all frames
-        std::vector<shared_ptr<Frame>> frames;    // all active frames, ONLY changed in marginalizeFrame and addFrame.
-        mutex framesMutex;  // mutex to lock frame read and write because other places will use this information
+        std::vector<std::shared_ptr<Frame>> frames;    // all active frames, ONLY changed in marginalizeFrame and addFrame.
+		std::mutex framesMutex;  // mutex to lock frame read and write because other places will use this information
 
         // active residuals
-        std::vector<shared_ptr<PointFrameResidual>> activeResiduals;
+        std::vector<std::shared_ptr<PointFrameResidual>> activeResiduals;
         float currentMinActDist = 2;
 
         std::vector<float> allResVec;
 
         // mutex etc. for tracker exchange.
-        mutex coarseTrackerSwapMutex;            // if tracker sees that there is a new reference, tracker locks [coarseTrackerSwapMutex] and swaps the two.
-        shared_ptr<CoarseTracker> coarseTracker_forNewKF = nullptr;            // set as as reference. protected by [coarseTrackerSwapMutex].
-        shared_ptr<CoarseTracker> coarseTracker = nullptr;                    // always used to track new frames. protected by [trackMutex].
+		std::mutex coarseTrackerSwapMutex;            // if tracker sees that there is a new reference, tracker locks [coarseTrackerSwapMutex] and swaps the two.
+		std::shared_ptr<CoarseTracker> coarseTracker_forNewKF = nullptr;            // set as as reference. protected by [coarseTrackerSwapMutex].
+		std::shared_ptr<CoarseTracker> coarseTracker = nullptr;                    // always used to track new frames. protected by [trackMutex].
 
-        mutex shellPoseMutex;
+		std::mutex shellPoseMutex;
 
         // tracking / mapping synchronization. All protected by [trackMapSyncMutex].
-        mutex trackMapSyncMutex;
-        condition_variable trackedFrameSignal;
-        condition_variable mappedFrameSignal;
-        deque<shared_ptr<Frame>> unmappedTrackedFrames;
+		std::mutex trackMapSyncMutex;
+		std::condition_variable trackedFrameSignal;
+		std::condition_variable mappedFrameSignal;
+		std::deque<std::shared_ptr<Frame>> unmappedTrackedFrames;
         int needNewKFAfter = -1;    // Otherwise, a new KF is *needed that has ID bigger than [needNewKFAfter]*.
 
-        thread mappingThread;
+		std::thread mappingThread;
         bool runMapping = true;
         bool needToKetchupMapping = false;
 
     public:
-        shared_ptr<Map> globalMap = nullptr;    // global map
+		std::shared_ptr<Map> globalMap = nullptr;    // global map
         FeatureDetector detector;   // feature detector
         // ========================== loop closing ==================================== //
     public:
-        shared_ptr<ORBVocabulary> vocab = nullptr;  // vocabulary
-        shared_ptr<LoopClosing> loopClosing = nullptr;  // loop closing
+		std::shared_ptr<ORBVocabulary> vocab = nullptr;  // vocabulary
+		std::shared_ptr<LoopClosing> loopClosing = nullptr;  // loop closing
 
         // ========================= visualization =================================== //
     public:
-        void setViewer(shared_ptr<PangolinDSOViewer> v) {
+        void setViewer(std::shared_ptr<PangolinDSOViewer> v) {
             viewer = v;
             if (viewer)
                 viewer->setMap(globalMap);
         }
 
     private:
-        shared_ptr<PangolinDSOViewer> viewer = nullptr;
+		std::shared_ptr<PangolinDSOViewer> viewer = nullptr;
 
         // ========================= debug =================================== //
     public:
@@ -339,7 +339,7 @@ namespace ldso {
          * @param filename
          * @param printOptimized print the trajectory after loop closure?
          */
-        void printResult(const string &filename, bool printOptimized = true);
+        void printResult(const std::string &filename, bool printOptimized = true);
 
         /**
          * save the trajectory in Kitti format
@@ -348,7 +348,7 @@ namespace ldso {
          * @param filename
          * @param printOptimized
          */
-        void printResultKitti(const string &filename, bool printOptimized = true);
+        void printResultKitti(const std::string &filename, bool printOptimized = true);
     };
 
 }

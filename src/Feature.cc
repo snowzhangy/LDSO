@@ -5,7 +5,6 @@
 
 #include <memory>
 
-using namespace std;
 
 using namespace ldso::internal;
 
@@ -13,12 +12,12 @@ namespace ldso {
 
     void Feature::CreateFromImmature() {
         if (point) {
-            LOG(WARNING) << "Map point already created! You cannot create twice! " << endl;
+            LOG(WARNING) << "Map point already created! You cannot create twice! " << std::endl;
             return;
         }
         assert(ip != nullptr);
 
-        point = shared_ptr<Point>(new Point(ip->feature));
+        point = std::shared_ptr<Point>(new Point(ip->feature));
         point->mpPH->point = point;   // set the point hessians backward pointer
         status = Feature::FeatureStatus::VALID;
     }
@@ -36,7 +35,7 @@ namespace ldso {
         }
     }
 
-    void Feature::save(ofstream &fout) {
+    void Feature::save(std::ofstream &fout) {
         fout.write((char *) &status, sizeof(status));
         fout.write((char *) &uv[0], sizeof(float));
         fout.write((char *) &uv[1], sizeof(float));
@@ -49,7 +48,7 @@ namespace ldso {
             point->save(fout);
     }
 
-    void Feature::load(ifstream &fin, vector<shared_ptr<Frame>> &allKFs) {
+    void Feature::load(std::ifstream &fin, std::vector<std::shared_ptr<Frame>> &allKFs) {
 
         fin.read((char *) &status, sizeof(status));
         fin.read((char *) &uv[0], sizeof(float));
@@ -61,7 +60,7 @@ namespace ldso {
         fin.read((char *) descriptor, sizeof(uchar) * 32);
 
         if (status == Feature::FeatureStatus::VALID) {
-            point = shared_ptr<Point>(new Point);
+            point = std::shared_ptr<Point>(new Point);
             point->load(fin, allKFs);
         }
     }

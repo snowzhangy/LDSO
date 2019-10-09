@@ -59,7 +59,7 @@ namespace ldso {
              * insert a point-frame residual
              * @param r
              */
-            void insertResidual(shared_ptr<PointFrameResidual> r);
+            void insertResidual(std::shared_ptr<PointFrameResidual> r);
 
             /**
              * insert a feature observation residual
@@ -72,13 +72,13 @@ namespace ldso {
              * @param fh
              * @param Hcalib
              */
-            void insertFrame(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> Hcalib);
+            void insertFrame(std::shared_ptr<FrameHessian> fh, std::shared_ptr<CalibHessian> Hcalib);
 
             /**
              * drop a point-frame residual
              * @param r
              */
-            void dropResidual(shared_ptr<PointFrameResidual> r);
+            void dropResidual(std::shared_ptr<PointFrameResidual> r);
 
             // void dropResidual( shared_ptr<FeatureObsResidual> r);
 
@@ -86,13 +86,13 @@ namespace ldso {
              * marginalize a given frame
              * @param fh
              */
-            void marginalizeFrame(shared_ptr<FrameHessian> fh);
+            void marginalizeFrame(std::shared_ptr<FrameHessian> fh);
 
             /**
              * remove a point, delete all the residuals about it.
              * @param ph
              */
-            void removePoint(shared_ptr<PointHessian> ph);
+            void removePoint(std::shared_ptr<PointHessian> ph);
 
             /**
              * Marg all points to compute Bundle Adjustment
@@ -111,7 +111,7 @@ namespace ldso {
              * @param lambda
              * @param HCalib
              */
-            void solveSystemF(int iteration, double lambda, shared_ptr<CalibHessian> HCalib);
+            void solveSystemF(int iteration, double lambda, std::shared_ptr<CalibHessian> HCalib);
 
             /**
              * compute frame-frame prior energy
@@ -139,16 +139,16 @@ namespace ldso {
              * don't know what is deltaF ...
              * @param HCalib
              */
-            void setDeltaF(shared_ptr<CalibHessian> HCalib);
+            void setDeltaF(std::shared_ptr<CalibHessian> HCalib);
 
             /**
              * set the adjoints of frames
              * @param Hcalib
              */
-            void setAdjointsF(shared_ptr<CalibHessian> Hcalib);
+            void setAdjointsF(std::shared_ptr<CalibHessian> Hcalib);
 
             // all related frames
-            std::vector<shared_ptr<FrameHessian>> frames;
+            std::vector<std::shared_ptr<FrameHessian>> frames;
             int nPoints = 0, nFrames = 0, nResiduals = 0;
 
             MatXX HM = MatXX::Zero(CPARS, CPARS);   // frame-frame H matrix
@@ -191,7 +191,7 @@ namespace ldso {
             /**
              * substitute the variable x into frameHessians
              */
-            void resubstituteF_MT(const VecX &x, shared_ptr<CalibHessian> HCalib, bool MT);
+            void resubstituteF_MT(const VecX &x, std::shared_ptr<CalibHessian> HCalib, bool MT);
 
             /**
              * substitute the variable xc into pointHessians
@@ -222,12 +222,12 @@ namespace ldso {
             VecCf cDeltaF;  // camera intrinsic change
             VecCf cPriorF;
 
-            shared_ptr<AccumulatedTopHessianSSE> accSSE_top_L;
-            shared_ptr<AccumulatedTopHessianSSE> accSSE_top_A;
-            shared_ptr<AccumulatedSCHessianSSE> accSSE_bot;
+			std::shared_ptr<AccumulatedTopHessianSSE> accSSE_top_L;
+			std::shared_ptr<AccumulatedTopHessianSSE> accSSE_top_A;
+			std::shared_ptr<AccumulatedSCHessianSSE> accSSE_bot;
 
-            std::vector<shared_ptr<PointHessian>> allPoints;
-            std::vector<shared_ptr<PointHessian>> allPointsToMarg;
+            std::vector<std::shared_ptr<PointHessian>> allPoints;
+            std::vector<std::shared_ptr<PointHessian>> allPointsToMarg;
 
             float currentLambda = 0;
         };

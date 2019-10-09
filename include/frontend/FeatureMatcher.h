@@ -40,7 +40,7 @@ namespace ldso {
          * @param matches
          * @return
          */
-        int SearchBruteForce(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match> &matches);
+        int SearchBruteForce(std::shared_ptr<Frame> frame1, std::shared_ptr<Frame> frame2, std::vector<Match> &matches);
 
         /**
          * Search by bag-of-words model
@@ -49,10 +49,10 @@ namespace ldso {
          * @param matches
          * @return
          */
-        int SearchByBoW(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match> &matches);
+        int SearchByBoW(std::shared_ptr<Frame> frame1, std::shared_ptr<Frame> frame2, std::vector<Match> &matches);
 
         // draw matches, will block until user press a key, return the cv::waitkey code
-        int DrawMatches( shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match>& matches );
+        int DrawMatches(std::shared_ptr<Frame> frame1, std::shared_ptr<Frame> frame2, std::vector<Match>& matches );
 
     private:
         float nnRatio = 0.6;

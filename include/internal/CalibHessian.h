@@ -17,7 +17,7 @@ namespace ldso {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            CalibHessian(shared_ptr<Camera> cam) : camera(cam) {
+            CalibHessian(std::shared_ptr<Camera> cam) : camera(cam) {
 
                 VecC initial_value = VecC::Zero();
                 initial_value[0] = cam->fx;
@@ -121,7 +121,7 @@ namespace ldso {
                 return Binv[c + 1] - Binv[c];
             }
 
-            shared_ptr<Camera> camera = nullptr;
+			std::shared_ptr<Camera> camera = nullptr;
 
             // values during estimation
             VecC value_zero = VecC::Zero();

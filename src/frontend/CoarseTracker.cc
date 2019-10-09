@@ -59,7 +59,7 @@ namespace ldso {
     }
 
     bool CoarseTracker::trackNewestCoarse(
-            shared_ptr<FrameHessian> newFrameHessian, SE3 &lastToNew_out,
+		std::shared_ptr<FrameHessian> newFrameHessian, SE3 &lastToNew_out,
             AffLight &aff_g2l_out, int coarsestLvl, Vec5 minResForAbort) {
 
         assert(coarsestLvl < 5 && coarsestLvl < pyrLevelsUsed);
@@ -216,7 +216,7 @@ namespace ldso {
         return true;
     }
 
-    void CoarseTracker::makeK(shared_ptr<CalibHessian> HCalib) {
+    void CoarseTracker::makeK(std::shared_ptr<CalibHessian> HCalib) {
 
         w[0] = wG[0];
         h[0] = hG[0];
@@ -245,7 +245,7 @@ namespace ldso {
         }
     }
 
-    void CoarseTracker::setCoarseTrackingRef(std::vector<shared_ptr<FrameHessian>> &frameHessians) {
+    void CoarseTracker::setCoarseTrackingRef(std::vector<std::shared_ptr<FrameHessian>> &frameHessians) {
 
         assert(frameHessians.size() > 0);
         lastRef = frameHessians.back();
@@ -255,20 +255,20 @@ namespace ldso {
         firstCoarseRMSE = -1;
     }
 
-    void CoarseTracker::makeCoarseDepthL0(std::vector<shared_ptr<FrameHessian>> frameHessians) {
+    void CoarseTracker::makeCoarseDepthL0(std::vector<std::shared_ptr<FrameHessian>> frameHessians) {
 
         // make coarse tracking templates for latstRef.
         memset(idepth[0], 0, sizeof(float) * w[0] * h[0]);
         memset(weightSums[0], 0, sizeof(float) * w[0] * h[0]);
 
-        for (shared_ptr<FrameHessian> fh: frameHessians) {
-            for (shared_ptr<Feature> feat: fh->frame->features) {
+        for (std::shared_ptr<FrameHessian> fh: frameHessians) {
+            for (std::shared_ptr<Feature> feat: fh->frame->features) {
                 if (feat->status == Feature::FeatureStatus::VALID &&
                     feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
-                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::IN) {
-                        shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
+                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::INN) {
+						std::shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
                         assert(r->isActive() && r->target.lock() == lastRef);
                         int u = r->centerProjectedTo[0] + 0.5f;
                         int v = r->centerProjectedTo[1] + 0.5f;
@@ -654,7 +654,7 @@ namespace ldso {
         delete[] coarseProjectionGridNum;
     }
 
-    void CoarseDistanceMap::makeK(shared_ptr<CalibHessian> HCalib) {
+    void CoarseDistanceMap::makeK(std::shared_ptr<CalibHessian> HCalib) {
 
         w[0] = wG[0];
         h[0] = hG[0];
@@ -683,8 +683,8 @@ namespace ldso {
         }
     }
 
-    void CoarseDistanceMap::makeDistanceMap(std::vector<shared_ptr<FrameHessian>> &frameHessians,
-                                            shared_ptr<FrameHessian> frame) {
+    void CoarseDistanceMap::makeDistanceMap(std::vector<std::shared_ptr<FrameHessian>> &frameHessians,
+		std::shared_ptr<FrameHessian> frame) {
 
         int w1 = w[1];
         int h1 = h[1];

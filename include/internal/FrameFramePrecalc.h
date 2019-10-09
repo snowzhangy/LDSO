@@ -8,7 +8,6 @@
 
 #include <memory>
 
-using namespace std;
 
 namespace ldso {
 
@@ -23,10 +22,10 @@ namespace ldso {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            void Set(shared_ptr<FrameHessian> host, shared_ptr<FrameHessian> target, shared_ptr<CalibHessian> HCalib);
+            void Set(std::shared_ptr<FrameHessian> host, std::shared_ptr<FrameHessian> target, std::shared_ptr<CalibHessian> HCalib);
 
-            weak_ptr<FrameHessian> host; // defines row
-            weak_ptr<FrameHessian> target;   // defines column
+			std::weak_ptr<FrameHessian> host; // defines row
+			std::weak_ptr<FrameHessian> target;   // defines column
 
             // precalc values
 

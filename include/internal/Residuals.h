@@ -4,8 +4,6 @@
 
 #include <memory>
 
-using namespace std;
-
 #include "NumTypes.h"
 #include "internal/RawResidualJacobian.h"
 
@@ -29,7 +27,7 @@ namespace ldso {
         };
 
         enum ResState {
-            IN = 0, OOB, OUTLIER
+            INN = 0, OOB, OUTLIER
         }; // Residual state: inside, outside, outlier
 
         struct FullJacRowT {
@@ -43,8 +41,8 @@ namespace ldso {
 
             PointFrameResidual() : J(new RawResidualJacobian) {}
 
-            PointFrameResidual(shared_ptr<PointHessian> point_, shared_ptr<FrameHessian> host_,
-                               shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian) {
+            PointFrameResidual(std::shared_ptr<PointHessian> point_, std::shared_ptr<FrameHessian> host_,
+				std::shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian) {
                 point = point_;
                 host = host_;
                 target = target_;
@@ -56,12 +54,12 @@ namespace ldso {
              * @param HCalib
              * @return the new energy
              */
-            virtual double linearize(shared_ptr<CalibHessian> &HCalib);
+            virtual double linearize(std::shared_ptr<CalibHessian> &HCalib);
 
             virtual void resetOOB() {
                 state_NewEnergy = state_energy = 0;
                 state_NewState = ResState::OUTLIER;
-                setState(ResState::IN);
+                setState(ResState::INN);
             };
 
             // 将state_NewState的状态更新至当前状态
@@ -72,7 +70,7 @@ namespace ldso {
                         return;
                     }
 
-                    if (state_NewState == ResState::IN) {
+                    if (state_NewState == ResState::INN) {
                         isActiveAndIsGoodNEW = true;
                         takeData();
                     } else {
@@ -93,10 +91,10 @@ namespace ldso {
             double state_NewEnergy = 0;
             double state_NewEnergyWithOutlier = 0;
 
-            weak_ptr<PointHessian> point;
-            weak_ptr<FrameHessian> host;
-            weak_ptr<FrameHessian> target;
-            shared_ptr<RawResidualJacobian> J = nullptr;
+			std::weak_ptr<PointHessian> point;
+			std::weak_ptr<FrameHessian> host;
+			std::weak_ptr<FrameHessian> target;
+			std::shared_ptr<RawResidualJacobian> J = nullptr;
 
             bool isNew = true;
             Eigen::Vector2f projectedTo[MAX_RES_PER_POINT]; // 从host到target的投影点
@@ -107,7 +105,7 @@ namespace ldso {
             inline bool isActive() const { return isActiveAndIsGoodNEW; }
 
             // fix the jacobians
-            void fixLinearizationF(shared_ptr<EnergyFunctional> ef);
+            void fixLinearizationF(std::shared_ptr<EnergyFunctional> ef);
 
             int hostIDX = 0, targetIDX = 0;
 

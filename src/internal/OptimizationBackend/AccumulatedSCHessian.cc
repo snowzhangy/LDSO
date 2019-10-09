@@ -6,7 +6,7 @@ namespace ldso {
 
     namespace internal {
 
-        void AccumulatedSCHessianSSE::addPoint(shared_ptr<PointHessian> p, bool shiftPriorToZero, int tid) {
+        void AccumulatedSCHessianSSE::addPoint(std::shared_ptr<PointHessian> p, bool shiftPriorToZero, int tid) {
 
             int ngoodres = 0;
             for (auto r : p->residuals)

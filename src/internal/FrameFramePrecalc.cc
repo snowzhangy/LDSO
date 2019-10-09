@@ -3,8 +3,8 @@
 namespace ldso {
     namespace internal {
 
-        void FrameFramePrecalc::Set(shared_ptr<FrameHessian> host, shared_ptr<FrameHessian> target,
-                                    shared_ptr<CalibHessian> HCalib) {
+        void FrameFramePrecalc::Set(std::shared_ptr<FrameHessian> host, std::shared_ptr<FrameHessian> target,
+			std::shared_ptr<CalibHessian> HCalib) {
 
             this->host = host;
             this->target = target;

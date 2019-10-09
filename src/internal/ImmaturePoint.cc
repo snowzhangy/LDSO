@@ -11,12 +11,12 @@ namespace ldso {
 
     namespace internal {
 
-        ImmaturePoint::ImmaturePoint(shared_ptr<Frame> hostFrame, shared_ptr<Feature> hostFeat, float type,
-                                     shared_ptr<CalibHessian> &HCalib) :
+        ImmaturePoint::ImmaturePoint(std::shared_ptr<Frame> hostFrame, std::shared_ptr<Feature> hostFeat, float type,
+			std::shared_ptr<CalibHessian> &HCalib) :
                 my_type(type), feature(hostFeat) {
             assert(hostFrame->frameHessian);
             gradH.setZero();
-            shared_ptr<FrameHessian> host = hostFrame->frameHessian;
+			std::shared_ptr<FrameHessian> host = hostFrame->frameHessian;
             float u = feature->uv[0], v = feature->uv[1];
             for (int idx = 0; idx < patternNum; idx++) {
                 int dx = patternP[idx][0];
@@ -45,9 +45,9 @@ namespace ldso {
          * * SKIP -> point has not been updated.
          */
         ImmaturePointStatus ImmaturePoint::traceOn(
-                shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi,
+			std::shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi,
                 const Vec3f &hostToFrame_Kt, const Vec2f &hostToFrame_affine,
-                shared_ptr<CalibHessian> HCalib) {
+			std::shared_ptr<CalibHessian> HCalib) {
 
             if (lastTraceStatus == ImmaturePointStatus::IPS_OOB) return lastTraceStatus;
             float maxPixSearch = (wG[0] + hG[0]) * setting_maxPixSearch;
@@ -310,8 +310,8 @@ namespace ldso {
         }
 
         double ImmaturePoint::linearizeResidual(
-                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float &Hdd, float &bd,
+			std::shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+			std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float &Hdd, float &bd,
                 float idepth) {
 
             if (tmpRes->state_state == ResState::OOB) {
@@ -319,8 +319,8 @@ namespace ldso {
                 return tmpRes->state_energy;
             }
 
-            shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
-            shared_ptr<FrameHessian> target = tmpRes->target.lock();
+			std::shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
+			std::shared_ptr<FrameHessian> target = tmpRes->target.lock();
             FrameFramePrecalc *precalc = &(host->targetPrecalc[target->idx]);
 
             // check OOB due to scale angle change.
@@ -373,7 +373,7 @@ namespace ldso {
                 energyLeft = energyTH * outlierTHSlack;
                 tmpRes->state_NewState = ResState::OUTLIER;
             } else {
-                tmpRes->state_NewState = ResState::IN;
+                tmpRes->state_NewState = ResState::INN;
             }
 
             tmpRes->state_NewEnergy = energyLeft;
@@ -381,10 +381,10 @@ namespace ldso {
         }
 
         float ImmaturePoint::calcResidual(
-                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
-            shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
-            shared_ptr<FrameHessian> target = tmpRes->target.lock();
+			std::shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+			std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
+			std::shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
+			std::shared_ptr<FrameHessian> target = tmpRes->target.lock();
             FrameFramePrecalc *precalc = &(host->targetPrecalc[target->idx]);
             float energyLeft = 0;
             const Eigen::Vector3f *dIl = target->dI;
@@ -415,11 +415,11 @@ namespace ldso {
         }
 
         float ImmaturePoint::getdPixdd(
-                shared_ptr<CalibHessian> HCalib,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
+			std::shared_ptr<CalibHessian> HCalib,
+			std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
 
-            shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
-            shared_ptr<FrameHessian> target = tmpRes->target.lock();
+			std::shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
+			std::shared_ptr<FrameHessian> target = tmpRes->target.lock();
 
             FrameFramePrecalc *precalc = &(host->targetPrecalc[target->idx]);
             const Vec3f &PRE_tTll = precalc->PRE_tTll;

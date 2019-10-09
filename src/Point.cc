@@ -8,13 +8,13 @@ using namespace ldso::internal;
 namespace ldso {
     unsigned long Point::mNextId = 0;
 
-    Point::Point(shared_ptr<Feature> hostFeature) {
+    Point::Point(std::shared_ptr<Feature> hostFeature) {
         mHostFeature = hostFeature;
         if (hostFeature->ip)    // create from immature point
-            mpPH = shared_ptr<PointHessian>(new PointHessian(hostFeature->ip));
+            mpPH = std::shared_ptr<PointHessian>(new PointHessian(hostFeature->ip));
         else {
-            LOG(ERROR) << "map point created without immature point, this should not happen!" << endl;
-            mpPH = shared_ptr<PointHessian>(new PointHessian());
+            LOG(ERROR) << "map point created without immature point, this should not happen!" << std::endl;
+            mpPH = std::shared_ptr<PointHessian>(new PointHessian());
         }
         mpPH->point = hostFeature->point;
         id = mNextId++;
@@ -32,9 +32,9 @@ namespace ldso {
     }
 
     void Point::ComputeWorldPos() {
-        shared_ptr<Feature> feat = mHostFeature.lock();
+		std::shared_ptr<Feature> feat = mHostFeature.lock();
         if (feat) {
-            shared_ptr<Frame> frame = feat->host.lock();
+			std::shared_ptr<Frame> frame = feat->host.lock();
             if (!frame)
                 return;
             Sim3 Twc = frame->getPoseOpti().inverse();
@@ -46,12 +46,12 @@ namespace ldso {
         }
     }
 
-    void Point::save(ofstream &fout) {
+    void Point::save(std::ofstream &fout) {
         fout.write((char *) &id, sizeof(id));
         fout.write((char *) &status, sizeof(status));
     }
 
-    void Point::load(ifstream &fin, vector<shared_ptr<Frame>> &allKFs) {
+    void Point::load(std::ifstream &fin, std::vector<std::shared_ptr<Frame>> &allKFs) {
 
         fin.read((char *) &id, sizeof(id));
         fin.read((char *) &status, sizeof(status));

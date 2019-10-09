@@ -8,12 +8,11 @@
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <boost/format.hpp>
 
 #include <g2o/core/block_solver.h>
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/linear_solver_eigen.h>
+#include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/core/robust_kernel_impl.h>
 
 
@@ -26,12 +25,12 @@ namespace ldso {
             coarseDistanceMap(fullsystem->GetDistanceMap()),
             fullSystem(fullsystem) {
 
-        mainLoop = thread(&LoopClosing::Run, this);
+        mainLoop = std::thread(&LoopClosing::Run, this);
         idepthMap = new float[wG[0] * hG[0]];
     }
 
-    void LoopClosing::InsertKeyFrame(shared_ptr<Frame> &frame) {
-        unique_lock<mutex> lock(mutexKFQueue);
+    void LoopClosing::InsertKeyFrame(std::shared_ptr<Frame> &frame) {
+		std::unique_lock<std::mutex> lock(mutexKFQueue);
         KFqueue.push_back(frame);
     }
 
@@ -41,13 +40,13 @@ namespace ldso {
         while (1) {
 
             if (needFinish) {
-                LOG(INFO) << "find loop closing thread need finish flag!" << endl;
+                LOG(INFO) << "find loop closing thread need finish flag!" << std::endl;
                 break;
             }
 
             {
                 // get the oldest one
-                unique_lock<mutex> lock(mutexKFQueue);
+				std::unique_lock<std::mutex> lock(mutexKFQueue);
                 if (KFqueue.empty()) {
                     lock.unlock();
                     usleep(5000);
@@ -68,12 +67,12 @@ namespace ldso {
                 if (CorrectLoop(Hcalib)) {
                     // start a pose graph optimization
                     if (mapIdle) {
-                        LOG(INFO) << "call global pose graph!" << endl;
+                        LOG(INFO) << "call global pose graph!" << std::endl;
                         bool ret = globalMap->OptimizeALLKFs();
                         if (ret)
                             needPoseGraph = false;
                     } else {
-                        LOG(INFO) << "still need pose graph optimization!" << endl;
+                        LOG(INFO) << "still need pose graph optimization!" << std::endl;
                         needPoseGraph = true;
                     }
                 }
@@ -81,7 +80,7 @@ namespace ldso {
 
 
             if (needPoseGraph && globalMap->Idle()) {
-                LOG(INFO) << "run another pose graph!" << endl;
+                LOG(INFO) << "run another pose graph!" << std::endl;
                 if (globalMap->OptimizeALLKFs())
                     needPoseGraph = false;
             }
@@ -92,7 +91,7 @@ namespace ldso {
         finished = true;
     }
 
-    bool LoopClosing::DetectLoop(shared_ptr<Frame> &frame) {
+    bool LoopClosing::DetectLoop(std::shared_ptr<Frame> &frame) {
 
         DBoW3::QueryResults results;
         kfDB->query(frame->bowVec, results, 1, maxKFId - kfGap);
@@ -123,7 +122,7 @@ namespace ldso {
         }
 
         LOG(INFO) << "candidate kf id: " << candidateKF->kfId << ", max id: " << maxKFId << ", min id: " << minKFId
-                  << endl;
+                  << std::endl;
 
         if (r.Score < minScoreAccept) {
             DBoW3::EntryId id = kfDB->add(frame->bowVec, frame->featVec);
@@ -131,18 +130,18 @@ namespace ldso {
             checkedKFs[id] = frame;
             candidateKF = checkedKFs[r.Id];
             LOG(INFO) << "add loop candidate from " << candidateKF->kfId << ", current: " << frame->kfId << ", score: "
-                      << r.Score << endl;
+                      << r.Score << std::endl;
             return true;
         }
 
         // detected a possible loop
         candidateKF = checkedKFs[r.Id];
         LOG(INFO) << "add loop candidate from " << candidateKF->kfId << ", current: " << frame->kfId << ", score: "
-                  << r.Score << endl;
+                  << r.Score << std::endl;
         return true;   // don't add into database
     }
 
-    bool LoopClosing::CorrectLoop(shared_ptr<CalibHessian> Hcalib) {
+    bool LoopClosing::CorrectLoop(std::shared_ptr<CalibHessian> Hcalib) {
 
         // We compute first ORB matches for each candidate
         FeatureMatcher matcher(0.75, true);
@@ -156,25 +155,25 @@ namespace ldso {
         K.at<float>(0, 2) = Hcalib->cxl();
         K.at<float>(1, 2) = Hcalib->cyl();
 
-        shared_ptr<Frame> pKF = candidateKF;
-        vector<Match> matches;
+		std::shared_ptr<Frame> pKF = candidateKF;
+		std::vector<Match> matches;
         int nmatches = matcher.SearchByBoW(currentKF, pKF, matches);
 
         if (nmatches < 10) {
-            LOG(INFO) << "no enough matches: " << nmatches << endl;
+            LOG(INFO) << "no enough matches: " << nmatches << std::endl;
         } else {
-            LOG(INFO) << "matches: " << nmatches << endl;
+            LOG(INFO) << "matches: " << nmatches << std::endl;
 
             // now we have a candidate proposed by dbow, let's try opencv's solve pnp ransac to see if there are enough inliers
-            vector<cv::Point3f> p3d;
-            vector<cv::Point2f> p2d;
+            std::vector<cv::Point3f> p3d;
+			std::vector<cv::Point2f> p2d;
             cv::Mat inliers;
-            vector<int> matchIdx;
+			std::vector<int> matchIdx;
 
             for (size_t k = 0; k < matches.size(); k++) {
                 auto &m = matches[k];
-                shared_ptr<Feature> &featKF = pKF->features[m.index2];
-                shared_ptr<Feature> &featCurrent = currentKF->features[m.index1];
+				std::shared_ptr<Feature> &featKF = pKF->features[m.index2];
+				std::shared_ptr<Feature> &featCurrent = currentKF->features[m.index1];
 
                 if (featKF->status == Feature::FeatureStatus::VALID &&
                     featKF->point->status != Point::PointStatus::OUTLIER) {
@@ -195,9 +194,13 @@ namespace ldso {
             }
 
             if (p3d.size() < 10) {
-                LOG(INFO) << "3d points not enough: " << p3d.size() << endl;
+                LOG(INFO) << "3d points not enough: " << p3d.size() << std::endl;
                 return false;
             }
+			else {
+				LOG(INFO) << "3d points enough: " << p3d.size() << std::endl;
+				LOG(INFO) << "2d points enough: " << p2d.size() << std::endl;
+			}
 
             cv::Mat R, t;
 #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
@@ -209,19 +212,19 @@ namespace ldso {
 #endif
             int cntInliers = 0;
 
-            vector<Match> inlierMatches;
+			std::vector<Match> inlierMatches;
             for (int k = 0; k < inliers.rows; k++) {
                 inlierMatches.push_back(matches[matchIdx[inliers.at<int>(k, 0)]]);
                 cntInliers++;
             }
 
             if (cntInliers < 10) {
-                LOG(INFO) << "Ransac inlier not enough: " << cntInliers << endl;
+                LOG(INFO) << "Ransac inlier not enough: " << cntInliers << std::endl;
                 return false;
             }
 
             LOG(INFO) << "Loop detected from kf " << currentKF->kfId << " to " << pKF->kfId
-                      << ", inlier matches: " << cntInliers << endl;
+                      << ", inlier matches: " << cntInliers << std::endl;
 
             // and then test with the estimated Tcw
             SE3 TcrEsti(
@@ -240,7 +243,7 @@ namespace ldso {
             // setup pose graph
             {
                 Sim3 SCurRef = ScrEsti;
-                unique_lock<mutex> lock(currentKF->mutexPoseRel);
+				std::unique_lock<std::mutex> lock(currentKF->mutexPoseRel);
                 currentKF->poseRel[pKF] = Frame::RELPOSE(SCurRef, Hessian, true);   // and an pose graph edge
                 pKF->poseRel[currentKF] = Frame::RELPOSE(SCurRef.inverse(), Hessian, true);
             }
@@ -248,7 +251,7 @@ namespace ldso {
             success = true;
 
             if (setting_showLoopClosing && success) {
-                LOG(INFO) << "please see loop closing between " << currentKF->kfId << " and " << pKF->kfId << endl;
+                LOG(INFO) << "please see loop closing between " << currentKF->kfId << " and " << pKF->kfId << std::endl;
                 setting_pause = true;
                 matcher.DrawMatches(currentKF, pKF, inlierMatches);
                 setting_pause = false;
@@ -260,12 +263,12 @@ namespace ldso {
         return success;
     }
 
-    bool LoopClosing::ComputeOptimizedPose(shared_ptr<Frame> pKF, Sim3 &Scr, shared_ptr<CalibHessian> Hcalib,
+    bool LoopClosing::ComputeOptimizedPose(std::shared_ptr<Frame> pKF, Sim3 &Scr, std::shared_ptr<CalibHessian> Hcalib,
                                            Mat77 &H, float windowSize) {
 
-        LOG(INFO) << "computing optimized pose" << endl;
+        LOG(INFO) << "computing optimized pose" << std::endl;
         int TH_HIGH = 50;
-        vector<shared_ptr<Frame>> activeFrames = fullSystem->GetActiveFrames();
+		std::vector<std::shared_ptr<Frame>> activeFrames = fullSystem->GetActiveFrames();
         // make the idepth map
         memset(idepthMap, 0, sizeof(float) * wG[0] * hG[0]);
 
@@ -273,15 +276,15 @@ namespace ldso {
         // NOTE these residuals are not locked!
         // tcw unused?
         //SE3 Tcw = currentKF->getPose();
-        for (shared_ptr<Frame> fh: activeFrames) {
+        for (std::shared_ptr<Frame> fh: activeFrames) {
             if (fh == currentKF) continue;
-            for (shared_ptr<Feature> feat: fh->features) {
+            for (std::shared_ptr<Feature> feat: fh->features) {
                 if (feat->status == Feature::FeatureStatus::VALID &&
                     feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
-                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::IN) {
-                        shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
+                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::INN) {
+						std::shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
                         if (r->target.lock() != currentKF->frameHessian) continue;
 
                         int u = r->centerProjectedTo[0] + 0.5f;
@@ -318,7 +321,7 @@ namespace ldso {
         VecVec2 matchedPixels;
 
         // find more matches in the local map of pKF
-        vector<shared_ptr<Feature>> candidateFeatures;
+		std::vector<std::shared_ptr<Feature>> candidateFeatures;
 
         for (auto &feat: pKF->features) {
             if (feat->status == Feature::FeatureStatus::VALID &&
@@ -355,7 +358,7 @@ namespace ldso {
             float idepth = 0;
 
             for (size_t &k: indices) {
-                shared_ptr<Feature> &feat = currentKF->features[k];
+				std::shared_ptr<Feature> &feat = currentKF->features[k];
                 if (fabsf(feat->angle - p->angle) < 0.2) {
                     // check rotation first
                     int dist = FeatureMatcher::DescriptorDistance(feat->descriptor,
@@ -397,21 +400,20 @@ namespace ldso {
         }
 
         if (nmatches < 10) {
-            LOG(INFO) << "local map matches not enough: " << nmatches << endl;
+            LOG(INFO) << "local map matches not enough: " << nmatches << std::endl;
             return false;
         }
 
         // pose optimization, note there maybe some mismatches
         // NOTE seems like there are multiple solutions if just use 3d-3d point pairs
         // setup g2o and solve the problem
-        g2o::SparseOptimizer optimizer;
-        g2o::BlockSolverX::LinearSolverType *linearSolver;
-        linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>();
-        g2o::BlockSolverX *solver_ptr = new g2o::BlockSolverX(linearSolver);
-        g2o::OptimizationAlgorithmLevenberg *solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+		g2o::SparseOptimizer optimizer;
+		auto linearSolver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>>();
+		auto solver_ptr = g2o::make_unique<g2o::BlockSolverX>(std::move(linearSolver));
+		g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(std::move(solver_ptr));
 
-        optimizer.setAlgorithm(solver);
-        optimizer.setVerbose(false);
+		optimizer.setAlgorithm(solver);
+		optimizer.setVerbose(false);
 
         // current KF's pose
         VertexSim3 *vSim3 = new VertexSim3();
@@ -424,8 +426,8 @@ namespace ldso {
         float infor = 1.0 / sigma2;
         float th = 5.991 * infor;
 
-        vector<EdgePointSim3 *> edgesSim3;
-        vector<EdgeProjectPoseOnlySim3 *> edgesProjection;
+        std::vector<EdgePointSim3 *> edgesSim3;
+		std::vector<EdgeProjectPoseOnlySim3 *> edgesProjection;
         for (size_t i = 0; i < matchedFeatures.size(); i++) {
 
             // EdgeProjectPoseOnlySim3 *eProj = new EdgeProjectPoseOnlySim3(Hcalib->mpCam, matchedPoints[i]);
@@ -433,7 +435,7 @@ namespace ldso {
             e3d->setId(i);
             e3d->setVertex(0, vSim3);
 
-            Mat33 inforMat = infor * Matrix3d::Identity();
+            Mat33 inforMat = infor * Eigen::Matrix3d::Identity();
             e3d->setInformation(inforMat);    // TODO should not be identity.
             e3d->setMeasurement(matchedFeatures[i]);
             edgesSim3.push_back(e3d);
@@ -466,7 +468,7 @@ namespace ldso {
             }
         }
 
-        LOG(INFO) << "inliers: " << inliers << ", outliers: " << outliers << endl;
+        LOG(INFO) << "inliers: " << inliers << ", outliers: " << outliers << std::endl;
 
         if (inliers < 15) // reject
             return false;

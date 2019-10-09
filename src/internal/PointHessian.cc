@@ -6,7 +6,7 @@ namespace ldso {
 
     namespace internal {
 
-        PointHessian::PointHessian(shared_ptr<ImmaturePoint> rawPoint) {
+        PointHessian::PointHessian(std::shared_ptr<ImmaturePoint> rawPoint) {
             u = rawPoint->feature->uv[0];
             v = rawPoint->feature->uv[1];
             my_type = rawPoint->my_type;

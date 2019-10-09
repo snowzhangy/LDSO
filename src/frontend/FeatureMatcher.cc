@@ -32,20 +32,20 @@ namespace ldso {
         return dist;
     }
 
-    int FeatureMatcher::SearchBruteForce(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2,
+    int FeatureMatcher::SearchBruteForce(std::shared_ptr<Frame> frame1, std::shared_ptr<Frame> frame2,
                                          std::vector<Match> &matches) {
 
         matches.reserve(frame1->features.size());
 
         for (size_t i = 0; i < frame1->features.size(); i++) {
-            shared_ptr<Feature> f1 = frame1->features[i];
+			std::shared_ptr<Feature> f1 = frame1->features[i];
             if (f1->isCorner == false)
                 continue;
             int min_dist = 9999;
             int min_dist_index = -1;
 
             for (size_t j = 0; j < frame2->features.size(); j++) {
-                shared_ptr<Feature> f2 = frame2->features[j];
+				std::shared_ptr<Feature> f2 = frame2->features[j];
                 if (f2->isCorner == false)
                     continue;
                 int dist = DescriptorDistance(f1->descriptor, f2->descriptor);
@@ -63,7 +63,7 @@ namespace ldso {
         return matches.size();
     }
 
-    int FeatureMatcher::SearchByBoW(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match> &matches) {
+    int FeatureMatcher::SearchByBoW(std::shared_ptr<Frame> frame1, std::shared_ptr<Frame> frame2, std::vector<Match> &matches) {
 
         int nmatches = 0;
         matches.reserve(frame1->features.size());
@@ -76,8 +76,8 @@ namespace ldso {
         while (f1it != f1end && f2it != f2end) {
             if (f1it->first == f2it->first) {
                 // from the same word
-                const vector<unsigned int> vIdx1 = f1it->second;
-                const vector<unsigned int> vIdx2 = f2it->second;
+                const std::vector<unsigned int> vIdx1 = f1it->second;
+                const std::vector<unsigned int> vIdx2 = f2it->second;
 
                 for (auto &idx1: vIdx1) {
                     auto &feat1 = frame1->features[frame1->bowIdx[idx1]];
@@ -123,7 +123,7 @@ namespace ldso {
         return nmatches;
     }
 
-    int FeatureMatcher::DrawMatches(shared_ptr<Frame> f1, shared_ptr<Frame> f2, std::vector<Match> &matches) {
+    int FeatureMatcher::DrawMatches(std::shared_ptr<Frame> f1, std::shared_ptr<Frame> f2, std::vector<Match> &matches) {
 
         cv::Mat img(hG[0], wG[0] * 2, CV_8UC3);   // color image displayed
         f1->imgDisplay.copyTo(img(cv::Rect(0, 0, wG[0], hG[0])));

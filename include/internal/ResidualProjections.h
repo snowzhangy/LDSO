@@ -58,7 +58,7 @@ namespace ldso {
                 const float &u_pt, const float &v_pt,
                 const float &idepth,
                 const int &dx, const int &dy,
-                shared_ptr<CalibHessian> const &HCalib,
+			std::shared_ptr<CalibHessian> const &HCalib,
                 const Mat33f &R, const Vec3f &t,
                 float &drescale, float &u, float &v,
                 float &Ku, float &Kv, Vec3f &KliP, float &new_idepth) {

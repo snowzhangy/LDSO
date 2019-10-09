@@ -21,7 +21,7 @@ namespace ldso {
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             // create the point hessian from immature point
-            PointHessian(shared_ptr<ImmaturePoint> rawPoint);
+            PointHessian(std::shared_ptr<ImmaturePoint> rawPoint);
 
             PointHessian() {}
 
@@ -29,7 +29,7 @@ namespace ldso {
                 this->idepth = idepth;
                 this->idepth_scaled = SCALE_IDEPTH * idepth;
                 if (point->mHostFeature.expired()) {
-                    LOG(FATAL) << "host feature expired!" << endl;
+                    LOG(FATAL) << "host feature expired!" << std::endl;
                 }
                 point->mHostFeature.lock()->invD = idepth;
             }
@@ -38,7 +38,7 @@ namespace ldso {
                 this->idepth = SCALE_IDEPTH_INVERSE * idepth_scaled;
                 this->idepth_scaled = idepth_scaled;
                 if (point->mHostFeature.expired()) {
-                    LOG(FATAL) << "host feature expired!" << endl;
+                    LOG(FATAL) << "host feature expired!" << std::endl;
                 }
                 point->mHostFeature.lock()->invD = idepth;
             }
@@ -50,12 +50,12 @@ namespace ldso {
             }
 
             // judge if this point is out of boundary
-            inline bool isOOB(std::vector<shared_ptr<FrameHessian>> &toMarg) {
+            inline bool isOOB(std::vector<std::shared_ptr<FrameHessian>> &toMarg) {
 
                 int visInToMarg = 0;
-                for (shared_ptr<PointFrameResidual> &r : residuals) {
-                    if (r->state_state != ResState::IN) continue;
-                    for (shared_ptr<FrameHessian> k : toMarg)
+                for (std::shared_ptr<PointFrameResidual> &r : residuals) {
+                    if (r->state_state != ResState::INN) continue;
+                    for (std::shared_ptr<FrameHessian> k : toMarg)
                         if (r->target.lock() == k) visInToMarg++;
                 }
 
@@ -78,7 +78,7 @@ namespace ldso {
             }
 
 
-            shared_ptr<Point> point = nullptr;
+			std::shared_ptr<Point> point = nullptr;
 
             float u = 0, v = 0;              // pixel position
             float energyTH = 0;
@@ -97,10 +97,10 @@ namespace ldso {
             int numGoodResiduals = 0;
 
             // residuals in many keyframes
-            std::vector<shared_ptr<PointFrameResidual>> residuals;   // only contains good residuals (not OOB and not OUTLIER). Arbitrary order.
+            std::vector<std::shared_ptr<PointFrameResidual>> residuals;   // only contains good residuals (not OOB and not OUTLIER). Arbitrary order.
 
             // the last two residuals
-            std::pair<shared_ptr<PointFrameResidual>, ResState> lastResiduals[2];  // contains information about residuals to the last two (!) frames. ([0] = latest, [1] = the one before).
+            std::pair<std::shared_ptr<PointFrameResidual>, ResState> lastResiduals[2];  // contains information about residuals to the last two (!) frames. ([0] = latest, [1] = the one before).
 
             // static values
             float color[MAX_RES_PER_POINT];         // colors in host frame

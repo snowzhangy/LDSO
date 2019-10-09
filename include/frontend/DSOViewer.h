@@ -3,6 +3,7 @@
 #define LDSO_VIEWER_H_
 
 #include "NumTypes.h"
+#include "timeutil.h"
 #include "Frame.h"
 #include "Map.h"
 #include "frontend/MinimalImage.h"
@@ -12,9 +13,9 @@
 
 #include <thread>
 #include <mutex>
+#include <chrono>
 #include <pangolin/pangolin.h>
 
-using namespace std;
 
 using namespace ldso::internal;
 
@@ -50,11 +51,11 @@ namespace ldso {
 
         // copies points from KF over to internal buffer,
         // keeping some additional information so we can render it differently.
-        void setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib);
+        void setFromKF(std::shared_ptr<FrameHessian> fh, std::shared_ptr<CalibHessian> HCalib);
 
         // copies points from KF over to internal buffer,
         // keeping some additional information so we can render it differently.
-        void setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib);
+        void setFromF(std::shared_ptr<Frame> fs, std::shared_ptr<CalibHessian> HCalib);
 
         // copies & filters internal data to GL buffer for rendering. if nothing to do: does nothing.
         bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity,
@@ -73,7 +74,7 @@ namespace ldso {
             return (id < other.id);
         }
 
-        shared_ptr<Frame> originFrame = nullptr;
+		std::shared_ptr<Frame> originFrame = nullptr;
 
         int numPoints() const {
             int cnt = 0;
@@ -83,7 +84,7 @@ namespace ldso {
             return cnt;
         }
 
-        void save(ofstream &of);
+        void save(std::ofstream &of);
 
     private:
         float fx, fy, cx, cy;
@@ -124,11 +125,11 @@ namespace ldso {
 
         void close();
 
-        void publishKeyframes(std::vector<shared_ptr<Frame>> &frames, bool final, shared_ptr<CalibHessian> HCalib);
+        void publishKeyframes(std::vector<std::shared_ptr<Frame>> &frames, bool final, std::shared_ptr<CalibHessian> HCalib);
 
-        void publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib);
+        void publishCamPose(std::shared_ptr<Frame> frame, std::shared_ptr<CalibHessian> HCalib);
 
-        void setMap(shared_ptr<Map> m) {
+        void setMap(std::shared_ptr<Map> m) {
             globalMap = m;
         }
 
@@ -141,12 +142,12 @@ namespace ldso {
         void reset();
 
         void refreshAll() {
-            unique_lock<mutex> lck(freshMutex);
-            LOG(INFO) << "set gui refresh!" << endl;
+			std::unique_lock<std::mutex> lck(freshMutex);
+            LOG(INFO) << "set gui refresh!" << std::endl;
             freshAll = true;
         }
 
-        void saveAsPLYFile(const string &file_name);
+        void saveAsPLYFile(const std::string &file_name);
 
     private:
 
@@ -156,23 +157,23 @@ namespace ldso {
 
         // void drawConstraints();
 
-        thread runThread;
+		std::thread runThread;
         bool running = true;
         int w, h;
 
         // images rendering
-        mutex openImagesMutex;
+		std::mutex openImagesMutex;
         MinimalImageB3 *internalVideoImg = nullptr;
         bool videoImgChanged = true;
 
         // 3D model rendering
-        mutex model3DMutex;
-        std::vector<shared_ptr<Frame>> allFramePoses;  // trajectory
+		std::mutex model3DMutex;
+        std::vector<std::shared_ptr<Frame>> allFramePoses;  // trajectory
 
-        shared_ptr<KeyFrameDisplay> currentCam = nullptr;
-        std::vector<shared_ptr<KeyFrameDisplay>> keyframes; // all keyframes
-        std::map<int, shared_ptr<KeyFrameDisplay>> keyframesByKFID;
-        std::vector<size_t> activeKFIDs;    // active keyframes's IDs
+		std::shared_ptr<KeyFrameDisplay> currentCam = nullptr;
+        std::vector<std::shared_ptr<KeyFrameDisplay>> keyframes; // all keyframes
+        std::map<int, std::shared_ptr<KeyFrameDisplay>> keyframesByKFID;
+        std::vector<std::size_t> activeKFIDs;    // active keyframes's IDs
 
         // render settings
         bool settings_showKFCameras = true;
@@ -188,17 +189,18 @@ namespace ldso {
         float settings_minRelBS;
         int settings_sparsity;
 
-        // timings
-        struct timeval last_track;
-        struct timeval last_map;
+		// timings
+		bool first_frame = true;
+		std::chrono::steady_clock::time_point last_track;
+		std::chrono::steady_clock::time_point last_map;
 
         bool freshAll = false;
-        mutex freshMutex;
+		std::mutex freshMutex;
 
         std::deque<float> lastNTrackingMs;
         std::deque<float> lastNMappingMs;
 
-        shared_ptr<Map> globalMap = nullptr;
+		std::shared_ptr<Map> globalMap = nullptr;
     };
 
 }

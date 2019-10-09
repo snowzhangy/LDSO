@@ -9,7 +9,6 @@
 #include "internal/IndexThreadReduce.h"
 #include "internal/OptimizationBackend/MatrixAccumulators.h"
 
-using namespace std;
 
 namespace ldso {
 
@@ -58,7 +57,7 @@ namespace ldso {
                               int tid = 0);
 
             template<int mode>
-            void addPoint(shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid = 0);
+            void addPoint(std::shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid = 0);
 
 
             void stitchDoubleMT(IndexThreadReduce<Vec10>* red, MatXX &H, VecX &b, EnergyFunctional const *const EF,
@@ -110,7 +109,7 @@ namespace ldso {
 
             template<int mode>
             inline void addPointsInternal(
-                    std::vector<shared_ptr<PointHessian>> *points, EnergyFunctional const *const ef,
+                    std::vector<std::shared_ptr<PointHessian>> *points, EnergyFunctional const *const ef,
                     int min = 0, int max = 1, Vec10 *stats = 0, int tid = 0) {
                 for (int i = min; i < max; i++)
                     addPoint<mode>((*points)[i], ef, tid);

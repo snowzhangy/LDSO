@@ -4,7 +4,7 @@
 
 #include <memory>
 
-using namespace std;
+
 
 #include "NumTypes.h"
 
@@ -41,7 +41,7 @@ namespace ldso {
             OUTLIER          // the immature point diverges, or the map point becomes an outlier
         };  // the status of feature
 
-        Feature(float u, float v, shared_ptr<Frame> host) : host(host), uv(Vec2f(u, v)) {}
+        Feature(float u, float v, std::shared_ptr<Frame> host) : host(host), uv(Vec2f(u, v)) {}
 
         ~Feature() {}
 
@@ -69,18 +69,18 @@ namespace ldso {
         }
 
         // save and load
-        void save(ofstream &fout);
+        void save(std::ofstream &fout);
 
-        void load(ifstream &fin, vector<shared_ptr<Frame>> &allKFs);
+        void load(std::ifstream &fin, std::vector<std::shared_ptr<Frame>> &allKFs);
 
         // =====================================================================================================
         FeatureStatus status = IMMATURE;   // status of this feature
 
-        weak_ptr<Frame> host;   // the host frame
+		std::weak_ptr<Frame> host;   // the host frame
 
         Vec2f uv = Vec2f(0, 0);               // pixel position in image
         float invD = -1;                  // inverse depth, invalid if < 0, computed by dso's sliding window
-        shared_ptr<Point> point = nullptr;    // corresponding 3D point, nullptr if it is an immature point
+		std::shared_ptr<Point> point = nullptr;    // corresponding 3D point, nullptr if it is an immature point
 
         // feature stuffs
         float angle = 0;        // rotation
@@ -90,7 +90,7 @@ namespace ldso {
         unsigned char descriptor[32] = {0};  // ORB descriptors
 
         // internal structures for optimizing immature points
-        shared_ptr<internal::ImmaturePoint> ip = nullptr;  // the immature point
+		std::shared_ptr<internal::ImmaturePoint> ip = nullptr;  // the immature point
     };
 }
 

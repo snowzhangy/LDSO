@@ -22,7 +22,7 @@ namespace ldso {
             double state_energy;
             ResState state_NewState;
             double state_NewEnergy;
-            weak_ptr<FrameHessian> target;
+			std::weak_ptr<FrameHessian> target;
         };
 
         /**
@@ -53,8 +53,8 @@ namespace ldso {
              * @param type
              * @param HCalib
              */
-            ImmaturePoint(shared_ptr<Frame> hostFrame, shared_ptr<Feature> hostFeat, float type,
-                          shared_ptr<CalibHessian> &HCalib);
+            ImmaturePoint(std::shared_ptr<Frame> hostFrame, std::shared_ptr<Feature> hostFeat, float type,
+				std::shared_ptr<CalibHessian> &HCalib);
 
             ~ImmaturePoint() {}
 
@@ -69,8 +69,8 @@ namespace ldso {
              * @return
              */
             ImmaturePointStatus
-            traceOn(shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi, const Vec3f &hostToFrame_Kt,
-                    const Vec2f &hostToFrame_affine, shared_ptr<CalibHessian> HCalib);
+            traceOn(std::shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi, const Vec3f &hostToFrame_Kt,
+                    const Vec2f &hostToFrame_affine, std::shared_ptr<CalibHessian> HCalib);
 
             /**
              * compute the energy of the residuals and jacobians
@@ -83,23 +83,23 @@ namespace ldso {
              * @return
              */
             double linearizeResidual(
-                    shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+				std::shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+				std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
                     float &Hdd, float &bd,
                     float idepth);
 
             float getdPixdd(
-                    shared_ptr<CalibHessian> HCalib,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+				std::shared_ptr<CalibHessian> HCalib,
+				std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
                     float idepth);
 
             float calcResidual(
-                    shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+				std::shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+				std::shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
                     float idepth);
 
             // data
-            shared_ptr<Feature> feature = nullptr;    // the feature hosting this immature point
+			std::shared_ptr<Feature> feature = nullptr;    // the feature hosting this immature point
 
             float color[MAX_RES_PER_POINT];
             float weights[MAX_RES_PER_POINT];

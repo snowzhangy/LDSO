@@ -37,7 +37,7 @@ namespace ldso {
         delete[] JbBuffer_new;
     }
 
-    bool CoarseInitializer::trackFrame(shared_ptr<FrameHessian> newFrameHessian) {
+    bool CoarseInitializer::trackFrame(std::shared_ptr<FrameHessian> newFrameHessian) {
 
         newFrame = newFrameHessian;
         int maxIterations[] = {5, 5, 10, 30, 50};
@@ -544,7 +544,7 @@ namespace ldso {
         }
     }
 
-    void CoarseInitializer::setFirst(shared_ptr<CalibHessian> HCalib, shared_ptr<FrameHessian> newFrameHessian) {
+    void CoarseInitializer::setFirst(std::shared_ptr<CalibHessian> HCalib, std::shared_ptr<FrameHessian> newFrameHessian) {
 
         makeK(HCalib);
         firstFrame = newFrameHessian;
@@ -686,7 +686,7 @@ namespace ldso {
         std::swap<Vec10f *>(JbBuffer, JbBuffer_new);
     }
 
-    void CoarseInitializer::makeK(shared_ptr<CalibHessian> HCalib) {
+    void CoarseInitializer::makeK(std::shared_ptr<CalibHessian> HCalib) {
         w[0] = wG[0];
         h[0] = hG[0];
 

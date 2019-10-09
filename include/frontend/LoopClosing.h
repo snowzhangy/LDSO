@@ -3,6 +3,7 @@
 #define LDSO_LOOP_CLOSING_H_
 
 #include "NumTypes.h"
+#include "timeutil.h"
 #include "Frame.h"
 #include "Map.h"
 #include "FeatureMatcher.h"
@@ -14,7 +15,6 @@
 #include <queue>
 #include <mutex>
 
-using namespace std;
 
 using ldso::internal::CalibHessian;
 
@@ -31,7 +31,7 @@ namespace ldso {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         // Consistent group, the first is a group of keyframes that are considered as consistent, and the second is how many times they are detected
-        typedef pair<set<shared_ptr<Frame>>, int> ConsistentGroup;
+        typedef std::pair<std::set<std::shared_ptr<Frame>>, int> ConsistentGroup;
 
         LoopClosing(FullSystem *fullSystem);
 
@@ -39,21 +39,21 @@ namespace ldso {
             if (idepthMap) delete[] idepthMap;
         }
 
-        void InsertKeyFrame(shared_ptr<Frame> &frame);
+        void InsertKeyFrame(std::shared_ptr<Frame> &frame);
 
         /**
          * detect loop candidates from the keyframe database
          * @param frame
          * @return true if there is at least one loop candidate
          */
-        bool DetectLoop(shared_ptr<Frame> &frame);
+        bool DetectLoop(std::shared_ptr<Frame> &frame);
 
         /**
          * compute RANSAC pnp in loop frames
          * however this function will not try to optimize the pose graph, which will be done in full system
          * @return true if find enough inliers
          */
-        bool CorrectLoop(shared_ptr<CalibHessian> Hcalib);
+        bool CorrectLoop(std::shared_ptr<CalibHessian> Hcalib);
 
         void Run();
 
@@ -64,7 +64,7 @@ namespace ldso {
         void SetFinish(bool finish = true) {
 
             needFinish = finish;
-            LOG(INFO) << "wait loop closing to join" << endl;
+            LOG(INFO) << "wait loop closing to join" << std::endl;
             mainLoop.join();
             while (globalMap && globalMap->Idle() == false) {
                 usleep(10000);
@@ -79,7 +79,7 @@ namespace ldso {
                     usleep(10000);
                 }
             }
-            LOG(INFO) << "Loop closing thread is finished" << endl;
+            LOG(INFO) << "Loop closing thread is finished" << std::endl;
         }
 
     private:
@@ -93,33 +93,33 @@ namespace ldso {
          * @return true if computation successes
          */
         bool
-        ComputeOptimizedPose(shared_ptr<Frame> pKF, Sim3 &Scr, shared_ptr<CalibHessian> Hcalib, Mat77 &hessian,
+        ComputeOptimizedPose(std::shared_ptr<Frame> pKF, Sim3 &Scr, std::shared_ptr<CalibHessian> Hcalib, Mat77 &hessian,
                              float windowSize = 5.0);
 
         // data
         FullSystem *fullSystem;
-        shared_ptr<Map> globalMap = nullptr;  // global map
+		std::shared_ptr<Map> globalMap = nullptr;  // global map
 
         // shared_ptr<KeyFrameDatabase> kfDB = nullptr;
-        shared_ptr<DBoW3::Database> kfDB = nullptr;
-        shared_ptr<ORBVocabulary> voc = nullptr;
+		std::shared_ptr<DBoW3::Database> kfDB = nullptr;
+		std::shared_ptr<ORBVocabulary> voc = nullptr;
 
-        shared_ptr<Frame> candidateKF = nullptr;
-        vector<shared_ptr<Frame>> allKF;
-        map<DBoW3::EntryId, shared_ptr<Frame>> checkedKFs;    // keyframes that are recorded.
+		std::shared_ptr<Frame> candidateKF = nullptr;
+		std::vector<std::shared_ptr<Frame>> allKF;
+		std::map<DBoW3::EntryId, std::shared_ptr<Frame>> checkedKFs;    // keyframes that are recorded.
         int maxKFId = 0;
-        shared_ptr<Frame> currentKF = nullptr;
+		std::shared_ptr<Frame> currentKF = nullptr;
 
         // loop kf queue
-        deque<shared_ptr<Frame>> KFqueue;
-        mutex mutexKFQueue;
-        shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr;  // Need distance map to correct the sim3 error
+		std::deque<std::shared_ptr<Frame>> KFqueue;
+		std::mutex mutexKFQueue;
+		std::shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr;  // Need distance map to correct the sim3 error
         bool finished = false;
-        shared_ptr<CalibHessian> Hcalib = nullptr;
+		std::shared_ptr<CalibHessian> Hcalib = nullptr;
         bool needFinish = false;
         bool needPoseGraph = false;
         float *idepthMap = nullptr;   // i hate this float*
-        thread mainLoop;
+		std::thread mainLoop;
 
         // parameters
         double minScoreAccept = 0.06;
