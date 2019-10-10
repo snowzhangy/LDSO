@@ -11,6 +11,12 @@
 
 ## Dependencies
 
+### Windows dependencies using vcpkg
+```
+.\vcpkg.exe install ceres[suitesparse,cxsparse,eigensparse] dbow3 dirent eigen3 glog gflags opencv3[nonfree,contrib,cuda,eigen,dnn] pangolin --triplet x64-windows
+.\vcpkg.exe install g2o --head --triplet x64-windows
+```
+
 ### System dependencies
 
 There is a convenience script that will help you install the needed
