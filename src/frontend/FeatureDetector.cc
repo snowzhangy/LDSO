@@ -31,7 +31,7 @@ namespace ldso {
 
     }
 
-    int FeatureDetector::DetectCorners(int nFeatures, shared_ptr<Frame> &frame) {
+    int FeatureDetector::DetectCorners(int nFeatures, std::shared_ptr<Frame> &frame) {
 
         // grid it
         int gridsize = int(sqrtf(wG[0] * hG[0] / nFeatures) + 0.5);
@@ -54,7 +54,7 @@ namespace ldso {
                     }
                 }
 
-                vector<pair<int, float>> candidate;
+				std::vector<std::pair<int, float>> candidate;
 
                 gradTH = (0.5 * maxGrad) > 5 ? 0.5 * maxGrad : 5;
                 int picked = 0;
@@ -66,7 +66,7 @@ namespace ldso {
                             // this is an candidate
                             int realX = gx * gridsize + x, realY = gy * gridsize + y;
                             float s = ShiTomasiScore(frame, realX, realY);
-                            candidate.push_back(pair<int, float>(idx, s));
+                            candidate.push_back(std::pair<int, float>(idx, s));
                             if (s > maxScore) {
                                 maxScore = s;
                             }
@@ -76,13 +76,13 @@ namespace ldso {
                 }
 
                 sort(candidate.begin(), candidate.end(),
-                     [](const pair<int, float> &p1, const pair<int, float> &p2) { return p1.second > p2.second; });
+                     [](const std::pair<int, float> &p1, const std::pair<int, float> &p2) { return p1.second > p2.second; });
 
                 for (auto &p: candidate) {
                     int x = p.first % gridsize;
                     int y = p.first / gridsize;
                     int realX = gx * gridsize + x, realY = gy * gridsize + y;
-                    shared_ptr<Feature> feat(new Feature(realX, realY, frame));
+					std::shared_ptr<Feature> feat(new Feature(realX, realY, frame));
                     feat->score = p.second;
                     frame->features.push_back(feat);
                     picked++;
@@ -96,7 +96,7 @@ namespace ldso {
 
         // find the corners
         scoreTH = 0.01 * maxScore;
-        vector<shared_ptr<Feature>> corners;
+		std::vector<std::shared_ptr<Feature>> corners;
         for (auto &feat: frame->features) {
             if (feat->score > scoreTH) {
                 feat->isCorner = true;
@@ -129,7 +129,7 @@ namespace ldso {
         return cntCornerSelected;
     }
 
-    int FeatureDetector::ComputeDescriptor(shared_ptr<Frame> &frame, shared_ptr<Feature> feat) {
+    int FeatureDetector::ComputeDescriptor(std::shared_ptr<Frame> &frame, std::shared_ptr<Feature> feat) {
 
         const float factorPI = (float) (CV_PI / 180.f);
 
@@ -188,7 +188,7 @@ namespace ldso {
         return 0;
     }
 
-    void FeatureDetector::DrawFeatures(shared_ptr<Frame> &frame, const string &windowName) {
+    void FeatureDetector::DrawFeatures(std::shared_ptr<Frame> &frame, const std::string &windowName) {
 
         cv::Mat img(hG[0], wG[0], CV_8UC3);   // color image displayed
         for (int idx = 0; idx < wG[0] * hG[0]; idx++) {

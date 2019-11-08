@@ -1,7 +1,6 @@
 #include "Settings.h"
 
 #include <cstdio>
-using namespace std;
 
 namespace ldso {
 

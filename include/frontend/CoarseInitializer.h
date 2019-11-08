@@ -68,11 +68,11 @@ namespace ldso {
         ~CoarseInitializer();
 
 
-        void setFirst(shared_ptr<CalibHessian> HCalib, shared_ptr<FrameHessian> newFrameHessian);
+        void setFirst(std::shared_ptr<CalibHessian> HCalib, std::shared_ptr<FrameHessian> newFrameHessian);
 
-        bool trackFrame(shared_ptr<FrameHessian> newFrameHessian);
+        bool trackFrame(std::shared_ptr<FrameHessian> newFrameHessian);
 
-        void calcTGrads(shared_ptr<FrameHessian> newFrameHessian);
+        void calcTGrads(std::shared_ptr<FrameHessian> newFrameHessian);
 
         int frameID = -1;
         bool fixAffine = true;
@@ -84,8 +84,8 @@ namespace ldso {
         SE3 thisToNext;
 
 
-        shared_ptr<FrameHessian> firstFrame;
-        shared_ptr<FrameHessian> newFrame;
+		std::shared_ptr<FrameHessian> firstFrame;
+		std::shared_ptr<FrameHessian> newFrame;
     private:
         Mat33 K[PYR_LEVELS];
         Mat33 Ki[PYR_LEVELS];
@@ -100,7 +100,7 @@ namespace ldso {
         int w[PYR_LEVELS];
         int h[PYR_LEVELS];
 
-        void makeK(shared_ptr<CalibHessian> HCalib);
+        void makeK(std::shared_ptr<CalibHessian> HCalib);
 
         bool snapped;
         int snappedAt;

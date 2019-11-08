@@ -21,7 +21,7 @@ using namespace ldso::internal;
 
 namespace ldso {
 
-    FullSystem::FullSystem(shared_ptr<ORBVocabulary> voc) :
+    FullSystem::FullSystem(std::shared_ptr<ORBVocabulary> voc) :
         coarseDistanceMap(new CoarseDistanceMap(wG[0], hG[0])),
         coarseTracker(new CoarseTracker(wG[0], hG[0])),
         coarseTracker_forNewKF(new CoarseTracker(wG[0], hG[0])),
@@ -35,22 +35,22 @@ namespace ldso {
             "For more information about dso, see Direct Sparse Odometry, J. Engel, V. Koltun, "
             "D. Cremers, In arXiv:1607.02565, 2016. For loop closing part, see "
             "LDSO: Direct Sparse Odometry with Loop Closure, X. Gao, R. Wang, N. Demmel, D. Cremers, "
-            "In International Conference on Intelligent Robots and Systems (IROS), 2018 " << endl;
+            "In International Conference on Intelligent Robots and Systems (IROS), 2018 " << std::endl;
 
         Hcalib->CreateCH(Hcalib);
         lastCoarseRMSE.setConstant(100);
         ef->red = &this->threadReduce;
-        mappingThread = thread(&FullSystem::mappingLoop, this);
+        mappingThread = std::thread(&FullSystem::mappingLoop, this);
 
-        pixelSelector = shared_ptr<PixelSelector>(new PixelSelector(wG[0], hG[0]));
+        pixelSelector = std::shared_ptr<PixelSelector>(new PixelSelector(wG[0], hG[0]));
         selectionMap = new float[wG[0] * hG[0]];
 
         if (setting_enableLoopClosing) {
-            loopClosing = shared_ptr<LoopClosing>(new LoopClosing(this));
+            loopClosing = std::shared_ptr<LoopClosing>(new LoopClosing(this));
             if (setting_fastLoopClosing)
-                LOG(INFO) << "Use fast loop closing" << endl;
+                LOG(INFO) << "Use fast loop closing" << std::endl;
         } else {
-            LOG(INFO) << "loop closing is disabled" << endl;
+            LOG(INFO) << "loop closing is disabled" << std::endl;
         }
 
     }
@@ -68,22 +68,22 @@ namespace ldso {
     void FullSystem::addActiveFrame(ImageAndExposure *image, int id) {
         if (isLost)
             return;
-        unique_lock<mutex> lock(trackMutex);
+		std::unique_lock<std::mutex> lock(trackMutex);
 
-        LOG(INFO) << "*** taking frame " << id << " ***" << endl;
+        LOG(INFO) << "*** taking frame " << id << " ***" << std::endl;
 
         // create frame and frame hessian
-        shared_ptr<Frame> frame(new Frame(image->timestamp));
+		std::shared_ptr<Frame> frame(new Frame(image->timestamp));
         frame->CreateFH(frame);
         allFrameHistory.push_back(frame);
 
         // ==== make images ==== //
-        shared_ptr<FrameHessian> fh = frame->frameHessian;
+		std::shared_ptr<FrameHessian> fh = frame->frameHessian;
         fh->ab_exposure = image->exposure_time;
         fh->makeImages(image->image, Hcalib->mpCH);
 
         if (!initialized) {
-            LOG(INFO) << "Initializing ... " << endl;
+            LOG(INFO) << "Initializing ... " << std::endl;
             // use initializer
             if (coarseInitializer->frameID < 0) {   // first frame not set, set it
                 coarseInitializer->setFirst(Hcalib->mpCH, fh);
@@ -92,7 +92,7 @@ namespace ldso {
                 initializeFromInitializer(fh);
                 lock.unlock();
                 deliverTrackedFrame(fh, true);  // create new keyframe
-                LOG(INFO) << "init success." << endl;
+                LOG(INFO) << "init success." << std::endl;
             } else {
                 // still initializing
                 frame->poseValid = false;
@@ -103,21 +103,21 @@ namespace ldso {
             // init finished, do tracking
             // =========================== SWAP tracking reference?. =========================
             if (coarseTracker_forNewKF->refFrameID > coarseTracker->refFrameID) {
-                unique_lock<mutex> crlock(coarseTrackerSwapMutex);
-                LOG(INFO) << "swap coarse tracker to " << coarseTracker_forNewKF->refFrameID << endl;
+				std::unique_lock<std::mutex> crlock(coarseTrackerSwapMutex);
+                LOG(INFO) << "swap coarse tracker to " << coarseTracker_forNewKF->refFrameID << std::endl;
                 auto tmp = coarseTracker;
                 coarseTracker = coarseTracker_forNewKF;
                 coarseTracker_forNewKF = tmp;
             }
 
             // track the new frame and get the state
-            LOG(INFO) << "tracking new frame" << endl;
+            LOG(INFO) << "tracking new frame" << std::endl;
             Vec4 tres = trackNewCoarse(fh);
 
             if (!std::isfinite((double) tres[0]) || !std::isfinite((double) tres[1]) ||
                 !std::isfinite((double) tres[2]) || !std::isfinite((double) tres[3])) {
                 // invalid result
-                LOG(WARNING) << "Initial Tracking failed: LOST!" << endl;
+                LOG(WARNING) << "Initial Tracking failed: LOST!" << std::endl;
                 isLost = true;
                 return;
             }
@@ -150,14 +150,14 @@ namespace ldso {
                 viewer->publishCamPose(fh->frame, Hcalib->mpCH);
 
             lock.unlock();
-            LOG(INFO) << "deliver frame " << fh->frame->id << endl;
+            LOG(INFO) << "deliver frame " << fh->frame->id << std::endl;
             deliverTrackedFrame(fh, needToMakeKF);
-            LOG(INFO) << "add active frame returned" << endl << endl;
+            LOG(INFO) << "add active frame returned" << std::endl << std::endl;
             return;
         }
     }
 
-    void FullSystem::deliverTrackedFrame(shared_ptr<FrameHessian> fh, bool needKF) {
+    void FullSystem::deliverTrackedFrame(std::shared_ptr<FrameHessian> fh, bool needKF) {
         if (linearizeOperation) {
             if (needKF) {
                 makeKeyFrame(fh);
@@ -165,22 +165,22 @@ namespace ldso {
                 makeNonKeyFrame(fh);
             }
         } else {
-            unique_lock<mutex> lock(trackMapSyncMutex);
+			std::unique_lock<std::mutex> lock(trackMapSyncMutex);
             unmappedTrackedFrames.push_back(fh->frame);
             trackedFrameSignal.notify_all();
             while (coarseTracker_forNewKF->refFrameID == -1 && coarseTracker->refFrameID == -1) {
-                LOG(INFO) << "wait for mapped frame signal" << endl;
+                LOG(INFO) << "wait for mapped frame signal" << std::endl;
                 mappedFrameSignal.wait(lock);
             }
             lock.unlock();
         }
     }
 
-    Vec4 FullSystem::trackNewCoarse(shared_ptr<FrameHessian> fh) {
+    Vec4 FullSystem::trackNewCoarse(std::shared_ptr<FrameHessian> fh) {
 
         assert(allFrameHistory.size() > 0);
 
-        shared_ptr<FrameHessian> lastF = coarseTracker->lastRef;
+		std::shared_ptr<FrameHessian> lastF = coarseTracker->lastRef;
         CHECK(coarseTracker->lastRef->frame != nullptr);
 
         AffLight aff_last_2_l = AffLight(0, 0);
@@ -195,14 +195,14 @@ namespace ldso {
 
             // fill the pose tries ...
             // use the last before last and the last before before last (well my English is really poor...)
-            shared_ptr<Frame> slast = allFrameHistory[allFrameHistory.size() - 2];
-            shared_ptr<Frame> sprelast = allFrameHistory[allFrameHistory.size() - 3];
+			std::shared_ptr<Frame> slast = allFrameHistory[allFrameHistory.size() - 2];
+			std::shared_ptr<Frame> sprelast = allFrameHistory[allFrameHistory.size() - 3];
 
             SE3 slast_2_sprelast;
             SE3 lastF_2_slast;
 
             {    // lock on global pose consistency!
-                unique_lock<mutex> crlock(shellPoseMutex);
+				std::unique_lock<std::mutex> crlock(shellPoseMutex);
                 slast_2_sprelast = sprelast->getPose() * slast->getPose().inverse();
                 lastF_2_slast = slast->getPose() * lastF->frame->getPose().inverse();
                 aff_last_2_l = slast->aff_g2l;
@@ -358,7 +358,7 @@ namespace ldso {
 
         if (!haveOneGood) {
             LOG(WARNING) << "BIG ERROR! tracking failed entirely. Take predicted pose and hope we may somehow recover."
-                         << endl;
+                         << std::endl;
             flowVecs = Vec3(0, 0, 0);
             aff_g2l = aff_last_2_l;
             lastF_2_fh = lastF_2_fh_tries[0];
@@ -376,14 +376,14 @@ namespace ldso {
             coarseTracker->firstCoarseRMSE = achievedRes[0];
 
         LOG(INFO) << "Coarse Tracker tracked ab = " << aff_g2l.a << " " << aff_g2l.b << " (exp " << fh->ab_exposure
-                  << " ). Res " << achievedRes[0] << endl;
+                  << " ). Res " << achievedRes[0] << std::endl;
 
         return Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]);
     }
 
     void FullSystem::blockUntilMappingIsFinished() {
         {
-            unique_lock<mutex> lock(trackMapSyncMutex);
+			std::unique_lock<std::mutex> lock(trackMapSyncMutex);
             if (!runMapping) {
                 // mapping is already finished, no need to finish again
                 return;
@@ -407,31 +407,31 @@ namespace ldso {
         globalMap->UpdateAllWorldPoints();
     }
 
-    void FullSystem::makeKeyFrame(shared_ptr<FrameHessian> fh) {
+    void FullSystem::makeKeyFrame(std::shared_ptr<FrameHessian> fh) {
 
-        shared_ptr<Frame> frame = fh->frame;
+		std::shared_ptr<Frame> frame = fh->frame;
         auto refFrame = frames.back();
 
         {
-            unique_lock<mutex> crlock(shellPoseMutex);
+			std::unique_lock<std::mutex> crlock(shellPoseMutex);
             fh->setEvalPT_scaled(fh->frame->getPose(), fh->frame->aff_g2l);
             fh->frame->setPoseOpti(Sim3(fh->frame->getPose().matrix()));
         }
 
         LOG(INFO) << "frame " << fh->frame->id << " is marked as key frame, active keyframes: " << frames.size()
-                  << endl;
+                  << std::endl;
 
         // trace new keyframe
         traceNewCoarse(fh);
 
-        unique_lock<mutex> lock(mapMutex);
+		std::unique_lock<std::mutex> lock(mapMutex);
 
         // == flag frames to be marginalized  == //
         flagFramesForMarginalization(fh);
 
         // add new frame to hessian struct
         {
-            unique_lock<mutex> lck(framesMutex);
+			std::unique_lock<std::mutex> lck(framesMutex);
             fh->idx = frames.size();
             frames.push_back(fh->frame);
             fh->frame->kfId = fh->frameID = globalMap->NumFrames();
@@ -441,28 +441,28 @@ namespace ldso {
         setPrecalcValues();
 
         // =========================== add new residuals for old points =========================
-        LOG(INFO) << "adding new residuals" << endl;
+        LOG(INFO) << "adding new residuals" << std::endl;
         int numFwdResAdde = 0;
         for (auto fht : frames) { // go through all active frames
-            shared_ptr<FrameHessian> &fh1 = fht->frameHessian;
+			std::shared_ptr<FrameHessian> &fh1 = fht->frameHessian;
             if (fh1 == fh)
                 continue;
             for (auto feat: fht->features) {
                 if (feat->status == Feature::FeatureStatus::VALID
                     && feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
 
                     // add new residuals into this point hessian
-                    shared_ptr<PointFrameResidual> r(
+					std::shared_ptr<PointFrameResidual> r(
                         new PointFrameResidual(ph, fh1, fh));    // residual from fh1 to fh
 
-                    r->setState(ResState::IN);
+                    r->setState(ResState::INN);
                     ph->residuals.push_back(r);
                     ef->insertResidual(r);
 
                     ph->lastResiduals[1] = ph->lastResiduals[0];
-                    ph->lastResiduals[0] = pair<shared_ptr<PointFrameResidual>, ResState>(r, ResState::IN);
+                    ph->lastResiduals[0] = std::pair<std::shared_ptr<PointFrameResidual>, ResState>(r, ResState::INN);
                     numFwdResAdde++;
                 }
             }
@@ -474,26 +474,26 @@ namespace ldso {
 
         // =========================== OPTIMIZE ALL =========================
         fh->frameEnergyTH = frames.back()->frameHessian->frameEnergyTH;
-        LOG(INFO) << "call optimize on kf " << frame->kfId << endl;
+        LOG(INFO) << "call optimize on kf " << frame->kfId << std::endl;
         float rmse = optimize(setting_maxOptIterations);
-        LOG(INFO) << "optimize is done!" << endl;
+        LOG(INFO) << "optimize is done!" << std::endl;
 
         // =========================== Figure Out if INITIALIZATION FAILED =========================
         int numKFs = globalMap->NumFrames();
         if (numKFs <= 4) {
             if (numKFs == 2 && rmse > 20 * benchmark_initializerSlackFactor) {
-                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << endl;
-                LOG(INFO) << "rmse = " << rmse << endl;
+                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << std::endl;
+                LOG(INFO) << "rmse = " << rmse << std::endl;
                 initFailed = true;
             }
             if (numKFs == 3 && rmse > 13 * benchmark_initializerSlackFactor) {
-                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << endl;
-                LOG(INFO) << "rmse = " << rmse << endl;
+                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << std::endl;
+                LOG(INFO) << "rmse = " << rmse << std::endl;
                 initFailed = true;
             }
             if (numKFs == 4 && rmse > 9 * benchmark_initializerSlackFactor) {
-                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << endl;
-                LOG(INFO) << "rmse = " << rmse << endl;
+                LOG(WARNING) << "I THINK INITIALIZATINO FAILED! Resetting." << std::endl;
+                LOG(INFO) << "rmse = " << rmse << std::endl;
                 initFailed = true;
             }
         }
@@ -506,9 +506,9 @@ namespace ldso {
 
         // swap the coarse Tracker for new kf
         {
-            unique_lock<mutex> crlock(coarseTrackerSwapMutex);
+			std::unique_lock<std::mutex> crlock(coarseTrackerSwapMutex);
             coarseTracker_forNewKF->makeK(Hcalib->mpCH);
-            vector<shared_ptr<FrameHessian >> fhs;
+			std::vector<std::shared_ptr<FrameHessian >> fhs;
             for (auto &f: frames) fhs.push_back(f->frameHessian);
             coarseTracker_forNewKF->setCoarseTrackingRef(fhs);
         }
@@ -540,8 +540,8 @@ namespace ldso {
                 auto allKFs = globalMap->GetAllKFs();
                 for (auto &f2: allKFs) {
                     if (f2->kfId > minKFId && f2->kfId < maxKFId && f2 != fr) {
-                        unique_lock<mutex> lock(fr->mutexPoseRel);
-                        unique_lock<mutex> lock2(f2->mutexPoseRel);
+						std::unique_lock<std::mutex> lock(fr->mutexPoseRel);
+						std::unique_lock<std::mutex> lock2(f2->mutexPoseRel);
                         fr->poseRel[f2] = Sim3((fr->getPose() * f2->getPose().inverse()).matrix());
                         f2->poseRel[fr] = Sim3((f2->getPose() * fr->getPose().inverse()).matrix());
                     }
@@ -550,7 +550,7 @@ namespace ldso {
         } else {
             // only record the reference and first frame and also update the keyframe poses in window
             {
-                unique_lock<mutex> lock(frame->mutexPoseRel);
+				std::unique_lock<std::mutex> lock(frame->mutexPoseRel);
                 frame->poseRel[refFrame] = Sim3((frame->getPose() * refFrame->getPose().inverse()).matrix());
                 auto firstFrame = frames.front();
                 frame->poseRel[firstFrame] = Sim3((frame->getPose() * firstFrame->getPose().inverse()).matrix());
@@ -572,10 +572,10 @@ namespace ldso {
 
         // =========================== Marginalize Frames =========================
         {
-            unique_lock<mutex> lck(framesMutex);
+			std::unique_lock<std::mutex> lck(framesMutex);
             for (unsigned int i = 0; i < frames.size(); i++)
                 if (frames[i]->frameHessian->flaggedForMarginalization) {
-                    LOG(INFO) << "marg frame " << frames[i]->id << endl;
+                    LOG(INFO) << "marg frame " << frames[i]->id << std::endl;
                     CHECK(frames[i] != coarseTracker->lastRef->frame);
                     marginalizeFrame(frames[i]);
                     i = 0;
@@ -587,32 +587,32 @@ namespace ldso {
         if (setting_enableLoopClosing) {
             loopClosing->InsertKeyFrame(frame);
         }
-        LOG(INFO) << "make keyframe done" << endl;
+        LOG(INFO) << "make keyframe done" << std::endl;
     }
 
-    void FullSystem::makeNonKeyFrame(shared_ptr<FrameHessian> &fh) {
+    void FullSystem::makeNonKeyFrame(std::shared_ptr<FrameHessian> &fh) {
         {
-            unique_lock<mutex> crlock(shellPoseMutex);
+			std::unique_lock<std::mutex> crlock(shellPoseMutex);
             fh->setEvalPT_scaled(fh->frame->getPose(), fh->frame->aff_g2l);
         }
         traceNewCoarse(fh);
         fh->frame->ReleaseAll();  // no longer needs it
     }
 
-    void FullSystem::marginalizeFrame(shared_ptr<Frame> &frame) {
+    void FullSystem::marginalizeFrame(std::shared_ptr<Frame> &frame) {
 
         // marginalize or remove all this frames points
         ef->marginalizeFrame(frame->frameHessian);
 
         // drop all observations of existing points in that frame
-        for (shared_ptr<Frame> &fr: frames) {
+        for (std::shared_ptr<Frame> &fr: frames) {
             if (fr == frame)
                 continue;
             for (auto feat: fr->features) {
                 if (feat->status == Feature::FeatureStatus::VALID &&
                     feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
                     // remove the residuals projected into this frame
                     size_t n = ph->residuals.size();
                     for (size_t i = 0; i < n; i++) {
@@ -633,7 +633,7 @@ namespace ldso {
 
         // remove this frame from recorded frames
         frame->ReleaseAll();    // release all things in this frame
-        deleteOutOrder<shared_ptr<Frame>>
+        deleteOutOrder<std::shared_ptr<Frame>>
             (frames, frame);
 
         // reset the optimization idx
@@ -644,12 +644,12 @@ namespace ldso {
         ef->setAdjointsF(Hcalib->mpCH);
     }
 
-    void FullSystem::flagFramesForMarginalization(shared_ptr<FrameHessian> &newFH) {
+    void FullSystem::flagFramesForMarginalization(std::shared_ptr<FrameHessian> &newFH) {
 
         if (setting_minFrameAge > setting_maxFrames) {
             for (size_t i = setting_maxFrames; i < frames.size(); i++) {
-                shared_ptr<FrameHessian> &fh = frames[i - setting_maxFrames]->frameHessian;
-                LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << endl;
+				std::shared_ptr<FrameHessian> &fh = frames[i - setting_maxFrames]->frameHessian;
+                LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << std::endl;
                 fh->flaggedForMarginalization = true;
             }
             return;
@@ -660,7 +660,7 @@ namespace ldso {
         // marginalize all frames that have not enough points.
         for (int i = 0; i < (int) frames.size(); i++) {
 
-            shared_ptr<FrameHessian> &fh = frames[i]->frameHessian;
+			std::shared_ptr<FrameHessian> &fh = frames[i]->frameHessian;
             int in = 0, out = 0;
             for (auto &feat: frames[i]->features) {
                 if (feat->status == Feature::FeatureStatus::IMMATURE) {
@@ -668,7 +668,7 @@ namespace ldso {
                     continue;
                 }
 
-                shared_ptr<Point> p = feat->point;
+				std::shared_ptr<Point> p = feat->point;
                 if (p && p->status == Point::PointStatus::ACTIVE)
                     in++;
                 else
@@ -682,7 +682,7 @@ namespace ldso {
             if ((in < setting_minPointsRemaining * (in + out) ||
                  fabs(logf((float) refToFh[0])) > setting_maxLogAffFacInWindow)
                 && ((int) frames.size()) - flagged > setting_minFrames) {
-                LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << endl;
+                LOG(INFO) << "frame " << fh->frame->kfId << " is set as marged" << std::endl;
                 fh->flaggedForMarginalization = true;
                 flagged++;
             }
@@ -691,8 +691,8 @@ namespace ldso {
         // still too much, marginalize one
         if ((int) frames.size() - flagged >= setting_maxFrames) {
             double smallestScore = 1;
-            shared_ptr<Frame> toMarginalize = nullptr;
-            shared_ptr<Frame> latest = frames.back();
+			std::shared_ptr<Frame> toMarginalize = nullptr;
+			std::shared_ptr<Frame> latest = frames.back();
 
             for (auto &fr: frames) {
                 if (fr->frameHessian->frameID > latest->frameHessian->frameID - setting_minFrameAge ||
@@ -716,7 +716,7 @@ namespace ldso {
 
             if (toMarginalize) {
                 toMarginalize->frameHessian->flaggedForMarginalization = true;
-                LOG(INFO) << "frame " << toMarginalize->kfId << " is set as marged" << endl;
+                LOG(INFO) << "frame " << toMarginalize->kfId << " is set as marged" << std::endl;
                 flagged++;
             }
         }
@@ -735,9 +735,9 @@ namespace ldso {
         activeResiduals.clear();
         int numPoints = 0;
         int numLRes = 0;
-        for (shared_ptr<Frame> &fr : frames) {
+        for (std::shared_ptr<Frame> &fr : frames) {
             for (auto &feat: fr->features) {
-                shared_ptr<Point> p = feat->point;
+				std::shared_ptr<Point> p = feat->point;
                 if (feat->status == Feature::FeatureStatus::VALID && p
                     && p->status == Point::PointStatus::ACTIVE) {
                     auto ph = p->mpPH;
@@ -754,7 +754,7 @@ namespace ldso {
             }
         }
 
-        LOG(INFO) << "active residuals: " << activeResiduals.size() << endl;
+        LOG(INFO) << "active residuals: " << activeResiduals.size() << std::endl;
 
         Vec3 lastEnergy = linearizeAll(false);
         double lastEnergyL = calcLEnergy();
@@ -762,7 +762,7 @@ namespace ldso {
 
         // apply res
         if (multiThreading)
-            threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
+            threadReduce.reduce(std::bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
                                 activeResiduals.size(), 50);
         else
             applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
@@ -807,7 +807,7 @@ namespace ldso {
 
                 // energy is decreasing
                 if (multiThreading)
-                    threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
+                    threadReduce.reduce(std::bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
                                         activeResiduals.size(), 50);
                 else
                     applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
@@ -850,7 +850,7 @@ namespace ldso {
 
         // set the estimated pose into frame
         {
-            unique_lock<mutex> crlock(shellPoseMutex);
+			std::unique_lock<std::mutex> crlock(shellPoseMutex);
             for (auto fr: frames) {
                 fr->setPose(fr->frameHessian->PRE_camToWorld.inverse());
                 if (fr->kfId >= globalMap->getLatestOptimizedKfId()) {
@@ -889,18 +889,18 @@ namespace ldso {
         Hcalib->mpCH->B[255] = 255;
     }
 
-    shared_ptr<PointHessian>
-    FullSystem::optimizeImmaturePoint(shared_ptr<internal::ImmaturePoint> point, int minObs,
-                                      vector<shared_ptr<ImmaturePointTemporaryResidual>> &residuals) {
+	std::shared_ptr<PointHessian>
+    FullSystem::optimizeImmaturePoint(std::shared_ptr<internal::ImmaturePoint> point, int minObs,
+		std::vector<std::shared_ptr<ImmaturePointTemporaryResidual>> &residuals) {
         int nres = 0;
-        shared_ptr<Frame> hostFrame = point->feature->host.lock();
+		std::shared_ptr<Frame> hostFrame = point->feature->host.lock();
         assert(hostFrame);  // the feature should have a host frame
 
         for (auto fr: frames) {
             if (fr != hostFrame) {
                 residuals[nres]->state_NewEnergy = residuals[nres]->state_energy = 0;
                 residuals[nres]->state_NewState = ResState::OUTLIER;
-                residuals[nres]->state_state = ResState::IN;
+                residuals[nres]->state_state = ResState::INN;
                 residuals[nres]->target = fr->frameHessian;
                 nres++;
             }
@@ -966,7 +966,7 @@ namespace ldso {
 
         int numGoodRes = 0;
         for (int i = 0; i < nres; i++)
-            if (residuals[i]->state_state == ResState::IN)
+            if (residuals[i]->state_state == ResState::INN)
                 numGoodRes++;
 
         if (numGoodRes < minObs) {
@@ -975,7 +975,7 @@ namespace ldso {
         }
 
         point->feature->CreateFromImmature();    // create a point from immature feature
-        shared_ptr<PointHessian> p = point->feature->point->mpPH;
+		std::shared_ptr<PointHessian> p = point->feature->point->mpPH;
 
         // set residual status in new map point
         p->lastResiduals[0].first = nullptr;
@@ -988,30 +988,30 @@ namespace ldso {
 
         // move the immature point residuals into the new map point
         for (int i = 0; i < nres; i++)
-            if (residuals[i]->state_state == ResState::IN) {
-                shared_ptr<FrameHessian> host = point->feature->host.lock()->frameHessian;
-                shared_ptr<FrameHessian> target = residuals[i]->target.lock();
-                shared_ptr<PointFrameResidual> r(new PointFrameResidual(p, host, target));
+            if (residuals[i]->state_state == ResState::INN) {
+				std::shared_ptr<FrameHessian> host = point->feature->host.lock()->frameHessian;
+				std::shared_ptr<FrameHessian> target = residuals[i]->target.lock();
+				std::shared_ptr<PointFrameResidual> r(new PointFrameResidual(p, host, target));
 
                 r->state_NewEnergy = r->state_energy = 0;
                 r->state_NewState = ResState::OUTLIER;
-                r->setState(ResState::IN);
+                r->setState(ResState::INN);
                 p->residuals.push_back(r);
 
                 if (target == frames.back()->frameHessian) {
                     p->lastResiduals[0].first = r;
-                    p->lastResiduals[0].second = ResState::IN;
+                    p->lastResiduals[0].second = ResState::INN;
                 } else if (target == (frames.size() < 2 ? nullptr : frames[frames.size() - 2]->frameHessian)) {
                     p->lastResiduals[1].first = r;
-                    p->lastResiduals[1].second = ResState::IN;
+                    p->lastResiduals[1].second = ResState::INN;
                 }
             }
         return p;
     }
 
-    void FullSystem::traceNewCoarse(shared_ptr<FrameHessian> fh) {
+    void FullSystem::traceNewCoarse(std::shared_ptr<FrameHessian> fh) {
 
-        unique_lock<mutex> lock(mapMutex);
+		std::unique_lock<std::mutex> lock(mapMutex);
 
         int trace_total = 0, trace_good = 0, trace_oob = 0, trace_out = 0, trace_skip = 0, trace_badcondition = 0, trace_uninitialized = 0;
 
@@ -1021,8 +1021,8 @@ namespace ldso {
         K(0, 2) = Hcalib->mpCH->cxl();
         K(1, 2) = Hcalib->mpCH->cyl();
 
-        for (shared_ptr<Frame> fr: frames) {
-            shared_ptr<FrameHessian> host = fr->frameHessian;
+        for (std::shared_ptr<Frame> fr: frames) {
+			std::shared_ptr<FrameHessian> host = fr->frameHessian;
 
             SE3 hostToNew = fh->PRE_worldToCam * host->PRE_camToWorld;
             Mat33f KRKi = K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
@@ -1034,7 +1034,7 @@ namespace ldso {
             for (auto feat: fr->features) {
                 if (feat->status == Feature::FeatureStatus::IMMATURE && feat->ip) {
                     // update the immature points
-                    shared_ptr<ImmaturePoint> ph = feat->ip;
+					std::shared_ptr<ImmaturePoint> ph = feat->ip;
                     ph->traceOn(fh, KRKi, Kt, aff, Hcalib->mpCH);
 
                     if (ph->lastTraceStatus == ImmaturePointStatus::IPS_GOOD) trace_good++;
@@ -1073,7 +1073,7 @@ namespace ldso {
         if (currentMinActDist > 4) currentMinActDist = 4;
 
         auto newestFr = frames.back();
-        vector<shared_ptr<FrameHessian>> frameHessians;
+		std::vector<std::shared_ptr<FrameHessian>> frameHessians;
         for (auto fr: frames)
             frameHessians.push_back(fr->frameHessian);
 
@@ -1081,7 +1081,7 @@ namespace ldso {
         coarseDistanceMap->makeK(Hcalib->mpCH);
         coarseDistanceMap->makeDistanceMap(frameHessians, newestFr->frameHessian);
 
-        vector<shared_ptr<ImmaturePoint>> toOptimize;
+		std::vector<std::shared_ptr<ImmaturePoint>> toOptimize;
         toOptimize.reserve(20000);
 
         // go through all active frames
@@ -1094,11 +1094,11 @@ namespace ldso {
             Vec3f Kt = (coarseDistanceMap->K[1] * fhToNew.translation().cast<float>());
 
             for (size_t i = 0; i < host->frame->features.size(); i++) {
-                shared_ptr<Feature> &feat = host->frame->features[i];
+				std::shared_ptr<Feature> &feat = host->frame->features[i];
                 if (feat->status == Feature::FeatureStatus::IMMATURE && feat->ip) {
 
-                    shared_ptr<Feature> &feat = host->frame->features[i];
-                    shared_ptr<ImmaturePoint> &ph = host->frame->features[i]->ip;
+					std::shared_ptr<Feature> &feat = host->frame->features[i];
+					std::shared_ptr<ImmaturePoint> &ph = host->frame->features[i]->ip;
                     ph->idxInImmaturePoints = i;
 
                     // delete points that have never been traced successfully, or that are outlier on the last trace.
@@ -1151,7 +1151,7 @@ namespace ldso {
             }
         }
 
-        vector<shared_ptr<PointHessian>> optimized;
+		std::vector<std::shared_ptr<PointHessian>> optimized;
         optimized.resize(toOptimize.size());
 
         // this will actually turn immature points into point hessians
@@ -1164,8 +1164,8 @@ namespace ldso {
         }
 
         for (size_t k = 0; k < toOptimize.size(); k++) {
-            shared_ptr<PointHessian> newpoint = optimized[k];
-            shared_ptr<ImmaturePoint> ph = toOptimize[k];
+			std::shared_ptr<PointHessian> newpoint = optimized[k];
+			std::shared_ptr<ImmaturePoint> ph = toOptimize[k];
 
             if (newpoint != nullptr) {
 
@@ -1189,15 +1189,15 @@ namespace ldso {
     }
 
     void FullSystem::activatePointsMT_Reductor(
-        std::vector<shared_ptr<PointHessian>> *optimized,
-        std::vector<shared_ptr<ImmaturePoint>> *toOptimize,
+        std::vector<std::shared_ptr<PointHessian>> *optimized,
+        std::vector<std::shared_ptr<ImmaturePoint>> *toOptimize,
         int min, int max, Vec10 *stats, int tid) {
 
-        vector<shared_ptr<ImmaturePointTemporaryResidual>> tr(frames.size(), nullptr);
+		std::vector<std::shared_ptr<ImmaturePointTemporaryResidual>> tr(frames.size(), nullptr);
 
         for (auto &t:tr) {
             // create residual
-            t = shared_ptr<ImmaturePointTemporaryResidual>(new ImmaturePointTemporaryResidual());
+            t = std::shared_ptr<ImmaturePointTemporaryResidual>(new ImmaturePointTemporaryResidual());
         }
 
         for (int k = min; k < max; k++) {
@@ -1208,7 +1208,7 @@ namespace ldso {
     void FullSystem::flagPointsForRemoval() {
 
         assert(EFIndicesValid);
-        std::vector<shared_ptr<FrameHessian>>
+        std::vector<std::shared_ptr<FrameHessian>>
             fhsToMargPoints;
 
         for (int i = 0; i < (int) frames.size(); i++)
@@ -1219,12 +1219,12 @@ namespace ldso {
 
         // go through all active frames
         for (auto &fr : frames) {
-            shared_ptr<FrameHessian> host = fr->frameHessian;
+			std::shared_ptr<FrameHessian> host = fr->frameHessian;
             for (auto &feat: fr->features) {
                 if (feat->status == Feature::FeatureStatus::VALID &&
                     feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
 
                     if (ph->idepth_scaled < 0 || ph->residuals.size() == 0) {
                         // no residuals or idepth invalid
@@ -1255,34 +1255,34 @@ namespace ldso {
                                 ph->point->status = Point::PointStatus::MARGINALIZED;
                             } else {
                                 // idepth not good, drop it.
-                                ph->point->status = Point::PointStatus::OUT;
+                                ph->point->status = Point::PointStatus::OUTSIDE;
                             }
                         } else {
                             // not active, drop it.
-                            ph->point->status = Point::PointStatus::OUT;
+                            ph->point->status = Point::PointStatus::OUTSIDE;
                         }
                     }
                 }
             }
         }
 
-        LOG(INFO) << "Flag: nores: " << flag_nores << ", oob: " << flag_oob << ", marged: " << flag_inin << endl;
+        LOG(INFO) << "Flag: nores: " << flag_nores << ", oob: " << flag_oob << ", marged: " << flag_inin << std::endl;
     }
 
-    void FullSystem::makeNewTraces(shared_ptr<FrameHessian> newFrame, float *gtDepth) {
+    void FullSystem::makeNewTraces(std::shared_ptr<FrameHessian> newFrame, float *gtDepth) {
 
         if (setting_pointSelection == 1) {
-            LOG(INFO) << "using LDSO point selection strategy " << endl;
+            LOG(INFO) << "using LDSO point selection strategy " << std::endl;
             newFrame->frame->features.reserve(setting_desiredImmatureDensity);
             detector.DetectCorners(setting_desiredImmatureDensity, newFrame->frame);
             for (auto &feat: newFrame->frame->features) {
                 // create a immature point
-                feat->ip = shared_ptr<ImmaturePoint>(
+                feat->ip = std::shared_ptr<ImmaturePoint>(
                     new ImmaturePoint(newFrame->frame, feat, 1, Hcalib->mpCH));
             }
-            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << endl;
+            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << std::endl;
         } else if (setting_pointSelection == 0) {
-            LOG(INFO) << "using original DSO point selection strategy" << endl;
+            LOG(INFO) << "using original DSO point selection strategy" << std::endl;
             pixelSelector->allowFast = true;
             int numPointsTotal = pixelSelector->makeMaps(newFrame, selectionMap, setting_desiredImmatureDensity);
             newFrame->frame->features.reserve(numPointsTotal);
@@ -1292,8 +1292,8 @@ namespace ldso {
                     int i = x + y * wG[0];
                     if (selectionMap[i] == 0) continue;
 
-                    shared_ptr<Feature> feat(new Feature(x, y, newFrame->frame));
-                    feat->ip = shared_ptr<ImmaturePoint>(
+					std::shared_ptr<Feature> feat(new Feature(x, y, newFrame->frame));
+                    feat->ip = std::shared_ptr<ImmaturePoint>(
                         new ImmaturePoint(newFrame->frame, feat, selectionMap[i], Hcalib->mpCH));
                     if (!std::isfinite(feat->ip->energyTH)) {
                         feat->ReleaseAll();
@@ -1301,17 +1301,17 @@ namespace ldso {
                     } else
                         newFrame->frame->features.push_back(feat);
                 }
-            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << endl;
+            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << std::endl;
         } else if (setting_pointSelection == 2) {
             // random pick
-            LOG(INFO) << "using random point selection strategy" << endl;
+            LOG(INFO) << "using random point selection strategy" << std::endl;
             cv::RNG rng;
             newFrame->frame->features.reserve(setting_desiredImmatureDensity);
             for (int i = 0; i < setting_desiredImmatureDensity; i++) {
                 int x = rng.uniform(20, wG[0] - 20);
                 int y = rng.uniform(20, hG[0] - 20);
-                shared_ptr<Feature> feat(new Feature(x, y, newFrame->frame));
-                feat->ip = shared_ptr<ImmaturePoint>(
+				std::shared_ptr<Feature> feat(new Feature(x, y, newFrame->frame));
+                feat->ip = std::shared_ptr<ImmaturePoint>(
                     new ImmaturePoint(newFrame->frame, feat, 1, Hcalib->mpCH));
                 if (!std::isfinite(feat->ip->energyTH)) {
                     feat->ReleaseAll();
@@ -1319,15 +1319,15 @@ namespace ldso {
                 } else
                     newFrame->frame->features.push_back(feat);
             }
-            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << endl;
+            LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << std::endl;
         }
     }
 
-    void FullSystem::initializeFromInitializer(shared_ptr<FrameHessian> newFrame) {
-        unique_lock<mutex> lock(mapMutex);
+    void FullSystem::initializeFromInitializer(std::shared_ptr<FrameHessian> newFrame) {
+        std::unique_lock<std::mutex> lock(mapMutex);
 
-        shared_ptr<FrameHessian> firstFrame = coarseInitializer->firstFrame;
-        shared_ptr<Frame> fr = firstFrame->frame;
+		std::shared_ptr<FrameHessian> firstFrame = coarseInitializer->firstFrame;
+		std::shared_ptr<Frame> fr = firstFrame->frame;
         firstFrame->idx = frames.size();
 
         frames.push_back(fr);
@@ -1348,7 +1348,7 @@ namespace ldso {
         float keepPercentage = setting_desiredPointDensity / coarseInitializer->numPoints[0];
 
         LOG(INFO) << "Initialization: keep " << 100 * keepPercentage << " (need " << setting_desiredPointDensity
-                  << ", have " << coarseInitializer->numPoints[0] << ")!" << endl;
+                  << ", have " << coarseInitializer->numPoints[0] << ")!" << std::endl;
 
         // Create features in the first frame.
         for (size_t i = 0; i < size_t(coarseInitializer->numPoints[0]); i++) {
@@ -1357,8 +1357,8 @@ namespace ldso {
                 continue;
             Pnt *point = coarseInitializer->points[0] + i;
 
-            shared_ptr<Feature> feat(new Feature(point->u + 0.5f, point->v + 0.5f, firstFrame->frame));
-            feat->ip = shared_ptr<ImmaturePoint>(
+			std::shared_ptr<Feature> feat(new Feature(point->u + 0.5f, point->v + 0.5f, firstFrame->frame));
+            feat->ip = std::shared_ptr<ImmaturePoint>(
                 new ImmaturePoint(firstFrame->frame, feat, point->my_type, Hcalib->mpCH));
 
             if (!std::isfinite(feat->ip->energyTH)) {
@@ -1367,7 +1367,7 @@ namespace ldso {
             }
 
             feat->CreateFromImmature();
-            shared_ptr<PointHessian> ph = feat->point->mpPH;
+			std::shared_ptr<PointHessian> ph = feat->point->mpPH;
             if (!std::isfinite(ph->energyTH)) {
                 feat->ReleaseMapPoint();
                 continue;
@@ -1388,7 +1388,7 @@ namespace ldso {
 
         // really no lock required, as we are initializing.
         {
-            unique_lock<mutex> crlock(shellPoseMutex);
+			std::unique_lock<std::mutex> crlock(shellPoseMutex);
             firstFrame->setEvalPT_scaled(fr->getPose(), firstFrame->frame->aff_g2l);
             newFrame->frame->setPose(firstToNew);
             newFrame->setEvalPT_scaled(newFrame->frame->getPose(), newFrame->frame->aff_g2l);
@@ -1396,7 +1396,7 @@ namespace ldso {
 
         initialized = true;
         globalMap->AddKeyFrame(fr);
-        LOG(INFO) << "Initialized from initializer, points: " << firstFrame->frame->features.size() << endl;
+        LOG(INFO) << "Initialized from initializer, points: " << firstFrame->frame->features.size() << std::endl;
     }
 
     void FullSystem::removeOutliers() {
@@ -1406,7 +1406,7 @@ namespace ldso {
                 if (feat->status == Feature::FeatureStatus::VALID && feat->point
                     && feat->point->status == Point::PointStatus::ACTIVE) {
 
-                    shared_ptr<PointHessian> ph = feat->point->mpPH;
+					std::shared_ptr<PointHessian> ph = feat->point->mpPH;
                     if (ph->residuals.empty()) {
                         ph->point->status = Point::PointStatus::OUTLIER;
                         feat->status = Feature::FeatureStatus::OUTLIER;
@@ -1416,7 +1416,7 @@ namespace ldso {
             }
         }
 
-        LOG(INFO) << "remove outliers done, outliers: " << numPointsDropped << endl;
+        LOG(INFO) << "remove outliers done, outliers: " << numPointsDropped << std::endl;
         ef->dropPointsF();
     }
 
@@ -1445,14 +1445,14 @@ namespace ldso {
         double lastEnergyR = 0;
         double num = 0;
 
-        std::vector<shared_ptr<PointFrameResidual>>
+        std::vector<std::shared_ptr<PointFrameResidual>>
             toRemove[NUM_THREADS];
         for (int i = 0; i < NUM_THREADS; i++)
             toRemove[i].clear();
 
         if (multiThreading) {
             threadReduce.reduce(
-                bind(&FullSystem::linearizeAll_Reductor, this, fixLinearization, toRemove, _1, _2, _3, _4),
+				std::bind(&FullSystem::linearizeAll_Reductor, this, fixLinearization, toRemove, _1, _2, _3, _4),
                 0, activeResiduals.size(), 0);
             lastEnergyP = threadReduce.stats[0];
         } else {
@@ -1466,7 +1466,7 @@ namespace ldso {
         if (fixLinearization) {
 
             for (auto r : activeResiduals) {
-                shared_ptr<PointHessian> ph = r->point.lock();
+				std::shared_ptr<PointHessian> ph = r->point.lock();
                 if (ph->lastResiduals[0].first == r)
                     ph->lastResiduals[0].second = r->state_state;
                 else if (ph->lastResiduals[1].first == r)
@@ -1476,7 +1476,7 @@ namespace ldso {
             int nResRemoved = 0;
             for (int i = 0; i < NUM_THREADS; i++) {
                 for (auto r : toRemove[i]) {
-                    shared_ptr<PointHessian> ph = r->point.lock();
+					std::shared_ptr<PointHessian> ph = r->point.lock();
 
                     if (ph->lastResiduals[0].first == r)
                         ph->lastResiduals[0].first = 0;
@@ -1492,7 +1492,7 @@ namespace ldso {
     }
 
     void FullSystem::linearizeAll_Reductor(
-        bool fixLinearization, std::vector<shared_ptr<PointFrameResidual>>
+        bool fixLinearization, std::vector<std::shared_ptr<PointFrameResidual>>
 
     *toRemove,
         int min,
@@ -1505,7 +1505,7 @@ namespace ldso {
             int k = min;
             k < max;
             k++) {
-            shared_ptr<PointFrameResidual> r = activeResiduals[k];
+			std::shared_ptr<PointFrameResidual> r = activeResiduals[k];
             (*stats)[0] += r->
                 linearize(Hcalib
                               ->mpCH);
@@ -1519,9 +1519,9 @@ namespace ldso {
 
                     ) {
                     if (r->isNew) {
-                        shared_ptr<PointHessian> p = r->point.lock();
-                        shared_ptr<FrameHessian> host = r->host.lock();
-                        shared_ptr<FrameHessian> target = r->target.lock();
+						std::shared_ptr<PointHessian> p = r->point.lock();
+						std::shared_ptr<FrameHessian> host = r->host.lock();
+						std::shared_ptr<FrameHessian> target = r->target.lock();
                         Vec3f ptp_inf = host->targetPrecalc[target->idx].PRE_KRKiTll *
                                         Vec3f(p->u, p->v, 1);    // projected point assuming infinite depth.
                         Vec3f ptp = ptp_inf + host->targetPrecalc[target->idx].PRE_KtTll *
@@ -1803,12 +1803,12 @@ namespace ldso {
                 a,
                 b
         );
-        LOG(INFO) << string(buff);
+        LOG(INFO) << std::string(buff);
     }
 
     void FullSystem::mappingLoop() {
 
-        unique_lock<mutex> lock(trackMapSyncMutex);
+		std::unique_lock<std::mutex> lock(trackMapSyncMutex);
 
         while (runMapping) {
 
@@ -1820,7 +1820,7 @@ namespace ldso {
             if (!runMapping) break;
 
             // get an unmapped frame, tackle it.
-            shared_ptr<Frame> fr = unmappedTrackedFrames.front();
+			std::shared_ptr<Frame> fr = unmappedTrackedFrames.front();
             auto fh = fr->frameHessian;
             unmappedTrackedFrames.pop_front();
 
@@ -1844,10 +1844,10 @@ namespace ldso {
 
                 if (needToKetchupMapping && unmappedTrackedFrames.size() > 0) {
                     auto fr = unmappedTrackedFrames.front();
-                    shared_ptr<FrameHessian> fh = fr->frameHessian;
+					std::shared_ptr<FrameHessian> fh = fr->frameHessian;
                     unmappedTrackedFrames.pop_front();
                     {
-                        unique_lock<mutex> crlock(shellPoseMutex);
+						std::unique_lock<std::mutex> crlock(shellPoseMutex);
                         fh->setEvalPT_scaled(fr->getPose(), fh->frame->aff_g2l);
                     }
                 }
@@ -1869,8 +1869,8 @@ namespace ldso {
         LOG(INFO) << "MAPPING FINISHED!";
     }
 
-    bool FullSystem::saveAll(const string &filename) {
-        ofstream fout(filename, ios::out | ios::binary);
+    bool FullSystem::saveAll(const std::string &filename) {
+		std::ofstream fout(filename, std::ios::out | std::ios::binary);
         if (!fout) return false;
         int nKF = globalMap->NumFrames();
         fout.write((char *) &nKF, sizeof(int));
@@ -1879,26 +1879,26 @@ namespace ldso {
             frame->save(fout);
         }
         fout.close();
-        LOG(INFO) << "DONE!" << endl;
+        LOG(INFO) << "DONE!" << std::endl;
         return true;
     }
 
-    bool FullSystem::loadAll(const string &filename) {
+    bool FullSystem::loadAll(const std::string &filename) {
 
-        ifstream fin(filename);
+		std::ifstream fin(filename);
         if (!fin) return false;
         int numKF = 0;
         fin.read((char *) &numKF, sizeof(numKF));
 
-        vector<shared_ptr<Frame>> allKFs;
+		std::vector<std::shared_ptr<Frame>> allKFs;
         allKFs.resize(numKF, nullptr);
         for (auto &kf: allKFs) {
-            kf = shared_ptr<Frame>(new Frame());
+            kf = std::shared_ptr<Frame>(new Frame());
         }
 
         int i = 0;
         while (!fin.eof() && i < int(allKFs.size())) {
-            shared_ptr<Frame> &newFrame = allKFs[i];
+			std::shared_ptr<Frame> &newFrame = allKFs[i];
             newFrame->load(fin, newFrame, allKFs);
             i++;
         }
@@ -1913,20 +1913,20 @@ namespace ldso {
             globalMap->AddKeyFrame(kf);
         }
 
-        LOG(INFO) << "Loaded total " << frames.size() << " keyframes" << endl;
+        LOG(INFO) << "Loaded total " << frames.size() << " keyframes" << std::endl;
         return true;
     }
 
-    void FullSystem::printResult(const string &filename, bool printOptimized) {
+    void FullSystem::printResult(const std::string &filename, bool printOptimized) {
 
-        unique_lock<mutex> lock(trackMutex);
-        unique_lock<mutex> crlock(shellPoseMutex);
+		std::unique_lock<std::mutex> lock(trackMutex);
+		std::unique_lock<std::mutex> crlock(shellPoseMutex);
 
         std::ofstream myfile(filename);
         myfile << std::setprecision(15);
 
         auto allKFs = globalMap->GetAllKFs();
-        LOG(INFO) << "total keyframes: " << allKFs.size() << endl;
+        LOG(INFO) << "total keyframes: " << allKFs.size() << std::endl;
 
         for (auto &fr : allKFs) {
             SE3 Twc;
@@ -1947,13 +1947,13 @@ namespace ldso {
         myfile.close();
     }
 
-    void FullSystem::printResultKitti(const string &filename, bool printOptimized) {
+    void FullSystem::printResultKitti(const std::string &filename, bool printOptimized) {
 
-        LOG(INFO) << "saving kitti trajectory..." << endl;
+        LOG(INFO) << "saving kitti trajectory..." << std::endl;
 
-        unique_lock<mutex> lock(trackMutex);
-        unique_lock<mutex> crlock(shellPoseMutex);
-        ofstream f(filename);
+		std::unique_lock<std::mutex> lock(trackMutex);
+		std::unique_lock<std::mutex> crlock(shellPoseMutex);
+		std::ofstream f(filename);
 
         auto allKFs = globalMap->GetAllKFs();
         for (auto &fr: allKFs) {
@@ -1961,22 +1961,22 @@ namespace ldso {
                 SE3 Twc = fr->getPose().inverse();
                 Mat33 Rwc = Twc.rotationMatrix();
                 Vec3 twc = Twc.translation();
-                f << fr->id << " " << setprecision(9) <<
+                f << fr->id << " " << std::setprecision(9) <<
                   Rwc(0, 0) << " " << Rwc(0, 1) << " " << Rwc(0, 2) << " " << twc(0) << " " <<
                   Rwc(1, 0) << " " << Rwc(1, 1) << " " << Rwc(1, 2) << " " << twc(1) << " " <<
-                  Rwc(2, 0) << " " << Rwc(2, 1) << " " << Rwc(2, 2) << " " << twc(2) << endl;
+                  Rwc(2, 0) << " " << Rwc(2, 1) << " " << Rwc(2, 2) << " " << twc(2) << std::endl;
             } else {
                 Sim3 Swc = fr->getPoseOpti().inverse();
                 Mat33 Rwc = Swc.rotationMatrix();
                 Vec3 twc = Swc.translation();
-                f << fr->id << " " << setprecision(9) <<
+                f << fr->id << " " << std::setprecision(9) <<
                   Rwc(0, 0) << " " << Rwc(0, 1) << " " << Rwc(0, 2) << " " << twc(0) << " " <<
                   Rwc(1, 0) << " " << Rwc(1, 1) << " " << Rwc(1, 2) << " " << twc(1) << " " <<
-                  Rwc(2, 0) << " " << Rwc(2, 1) << " " << Rwc(2, 2) << " " << twc(2) << endl;
+                  Rwc(2, 0) << " " << Rwc(2, 1) << " " << Rwc(2, 2) << " " << twc(2) << std::endl;
             }
         }
         f.close();
 
-        LOG(INFO) << "done." << endl;
+        LOG(INFO) << "done." << std::endl;
     }
 }

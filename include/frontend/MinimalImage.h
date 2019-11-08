@@ -5,7 +5,6 @@
 #include <algorithm>
 #include "NumTypes.h"
 
-using namespace std;
 
 namespace ldso {
 

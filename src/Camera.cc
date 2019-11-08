@@ -11,8 +11,8 @@ namespace ldso {
         this->cy = cy;
     }
 
-    void Camera::CreateCH(shared_ptr<Camera> cam) {
-        this->mpCH = shared_ptr<CalibHessian>( new CalibHessian(cam) );
+    void Camera::CreateCH(std::shared_ptr<Camera> cam) {
+        this->mpCH = std::shared_ptr<CalibHessian>( new CalibHessian(cam) );
     }
 
     void Camera::ReleaseCH() {

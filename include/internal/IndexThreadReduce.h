@@ -9,7 +9,7 @@
 
 #include "Settings.h"
 
-using namespace std;
+
 using namespace std::placeholders;
 
 namespace ldso {
@@ -33,7 +33,7 @@ namespace ldso {
                 for (int i = 0; i < NUM_THREADS; i++) {
                     isDone[i] = false;
                     gotOne[i] = true;
-                    workerThreads[i] = thread(&IndexThreadReduce::workerLoop, this, i);
+                    workerThreads[i] = std::thread(&IndexThreadReduce::workerLoop, this, i);
                 }
 
             }
@@ -54,14 +54,14 @@ namespace ldso {
             }
 
             inline void
-            reduce(function<void(int, int, Running *, int)> callPerIndex, int first, int end, int stepSize = 0) {
+            reduce(std::function<void(int, int, Running *, int)> callPerIndex, int first, int end, int stepSize = 0) {
 
                 memset(&stats, 0, sizeof(Running));
 
                 if (stepSize == 0)
                     stepSize = ((end - first) + NUM_THREADS - 1) / NUM_THREADS;
 
-                unique_lock<mutex> lock(exMutex);
+                std::unique_lock<std::mutex> lock(exMutex);
 
                 // save
                 this->callPerIndex = callPerIndex;
@@ -102,13 +102,13 @@ namespace ldso {
             Running stats;
 
         private:
-            thread workerThreads[NUM_THREADS];
+            std::thread workerThreads[NUM_THREADS];
             bool isDone[NUM_THREADS];
             bool gotOne[NUM_THREADS];
 
-            mutex exMutex;
-            condition_variable todo_signal;
-            condition_variable done_signal;
+			std::mutex exMutex;
+			std::condition_variable todo_signal;
+			std::condition_variable done_signal;
 
             int nextIndex =0;
             int maxIndex =0;
@@ -116,7 +116,7 @@ namespace ldso {
 
             bool running =true;
 
-            function<void(int, int, Running *, int)> callPerIndex;
+			std::function<void(int, int, Running *, int)> callPerIndex;
 
             void callPerIndexDefault(int i, int j, Running *k, int tid) {
                 printf("ERROR: should never be called....\n");
@@ -124,7 +124,7 @@ namespace ldso {
             }
 
             void workerLoop(int idx) {
-                unique_lock<mutex> lock(exMutex);
+				std::unique_lock<std::mutex> lock(exMutex);
 
                 while (running) {
                     // try to get something to do.

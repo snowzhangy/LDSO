@@ -33,7 +33,7 @@ namespace ldso {
         return 90;
     }
 
-    void PixelSelector::makeHists(shared_ptr<FrameHessian> fh) {
+    void PixelSelector::makeHists(std::shared_ptr<FrameHessian> fh) {
         gradHistFrame = fh;
         float *mapmax0 = fh->absSquaredGrad[0];
 
@@ -108,7 +108,7 @@ namespace ldso {
             }
     }
 
-    int PixelSelector::makeMaps(const shared_ptr<FrameHessian> fh, float *map_out, float density,
+    int PixelSelector::makeMaps(const std::shared_ptr<FrameHessian> fh, float *map_out, float density,
                                 int recursionsLeft, bool plot, float thFactor) {
 
         float numHave = 0;
@@ -167,7 +167,7 @@ namespace ldso {
         return numHaveSub;
     }
 
-    Eigen::Vector3i PixelSelector::select(const shared_ptr<FrameHessian> fh, float *map_out, int pot,
+    Eigen::Vector3i PixelSelector::select(const std::shared_ptr<FrameHessian> fh, float *map_out, int pot,
                                           float thFactor) {
         Eigen::Vector3f const *const map0 = fh->dI;
 

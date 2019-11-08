@@ -17,14 +17,14 @@ namespace ldso {
         }
 
         template<typename T>
-        inline void deleteOut(std::vector<shared_ptr<T>> &v, const int i) {
+        inline void deleteOut(std::vector<std::shared_ptr<T>> &v, const int i) {
             v[i] = v.back();
             v.pop_back();
         }
 
         template<typename T>
-        inline void deleteOut(std::vector<shared_ptr<T>> &v, const shared_ptr<T> &e) {
-            for (shared_ptr<T> &t: v) {
+        inline void deleteOut(std::vector<std::shared_ptr<T>> &v, const std::shared_ptr<T> &e) {
+            for (std::shared_ptr<T> &t: v) {
                 if (t == e) {
                     t = v.back();
                     v.pop_back();

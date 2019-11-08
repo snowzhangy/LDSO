@@ -24,7 +24,7 @@ namespace ldso {
          * Create the internal structure, otherwise it will be nullptr
          * @param cam
          */
-        void CreateCH(shared_ptr<Camera> cam);
+        void CreateCH(std::shared_ptr<Camera> cam);
 
         /**
          * Release the internal structure
@@ -35,7 +35,7 @@ namespace ldso {
         double fx = 0, fy = 0, cx = 0, cy = 0;
 
         // internal structure
-        shared_ptr<internal::CalibHessian> mpCH = nullptr;
+		std::shared_ptr<internal::CalibHessian> mpCH = nullptr;
     };
 
 }

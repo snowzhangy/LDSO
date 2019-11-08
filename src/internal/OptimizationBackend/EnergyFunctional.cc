@@ -23,13 +23,13 @@ namespace ldso {
             if (adHTdeltaF != 0) delete[] adHTdeltaF;
         }
 
-        void EnergyFunctional::insertResidual(shared_ptr<PointFrameResidual> r) {
+        void EnergyFunctional::insertResidual(std::shared_ptr<PointFrameResidual> r) {
             r->takeData();
             connectivityMap[(((uint64_t) r->host.lock()->frameID) << 32) + ((uint64_t) r->target.lock()->frameID)][0]++;
             nResiduals++;
         }
 
-        void EnergyFunctional::insertFrame(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> Hcalib) {
+        void EnergyFunctional::insertFrame(std::shared_ptr<FrameHessian> fh, std::shared_ptr<CalibHessian> Hcalib) {
             fh->takeData();
             frames.push_back(fh);
             fh->idx = frames.size();
@@ -60,16 +60,16 @@ namespace ldso {
             }
         }
 
-        void EnergyFunctional::dropResidual(shared_ptr<PointFrameResidual> r) {
+        void EnergyFunctional::dropResidual(std::shared_ptr<PointFrameResidual> r) {
 
             // remove this residual from pointHessian->residualsAll
-            shared_ptr<PointHessian> p = r->point.lock();
+			std::shared_ptr<PointHessian> p = r->point.lock();
             deleteOut<PointFrameResidual>(p->residuals, r);
             connectivityMap[(((uint64_t) r->host.lock()->frameID) << 32) + ((uint64_t) r->target.lock()->frameID)][0]--;
             nResiduals--;
         }
 
-        void EnergyFunctional::marginalizeFrame(shared_ptr<FrameHessian> fh) {
+        void EnergyFunctional::marginalizeFrame(std::shared_ptr<FrameHessian> fh) {
 
             assert(EFDeltaValid);
             assert(EFAdjointsValid);
@@ -150,7 +150,7 @@ namespace ldso {
             makeIDX();
         }
 
-        void EnergyFunctional::removePoint(shared_ptr<PointHessian> ph) {
+        void EnergyFunctional::removePoint(std::shared_ptr<PointHessian> ph) {
             for (auto &r: ph->residuals) {
                 connectivityMap[(((uint64_t) r->host.lock()->frameID) << 32) +
                                 ((uint64_t) r->target.lock()->frameID)][0]--;
@@ -168,11 +168,11 @@ namespace ldso {
 
             // go through all points to see which to marg
             for (auto f: frames) {
-                for (shared_ptr<Feature> feat: f->frame->features) {
+                for (std::shared_ptr<Feature> feat: f->frame->features) {
 
                     if (feat->status == Feature::FeatureStatus::VALID &&
                         feat->point->status == Point::PointStatus::MARGINALIZED) {
-                        shared_ptr<PointHessian> p = feat->point->mpPH;
+						std::shared_ptr<PointHessian> p = feat->point->mpPH;
                         p->priorF *= setting_idepthFixPriorMargFac;
                         for (auto r: p->residuals)
                             if (r->isActive())
@@ -224,10 +224,10 @@ namespace ldso {
         void EnergyFunctional::dropPointsF() {
 
             for (auto f: frames) {
-                for (shared_ptr<Feature> feat: f->frame->features) {
+                for (std::shared_ptr<Feature> feat: f->frame->features) {
                     if (feat->point &&
                         (feat->point->status == Point::PointStatus::OUTLIER ||
-                         feat->point->status == Point::PointStatus::OUT)
+                         feat->point->status == Point::PointStatus::OUTSIDE)
                         && feat->point->mpPH->alreadyRemoved == false) {
                         removePoint(feat->point->mpPH);
                     }
@@ -237,7 +237,7 @@ namespace ldso {
             makeIDX();
         }
 
-        void EnergyFunctional::solveSystemF(int iteration, double lambda, shared_ptr<CalibHessian> HCalib) {
+        void EnergyFunctional::solveSystemF(int iteration, double lambda, std::shared_ptr<CalibHessian> HCalib) {
 
             if (setting_solverMode & SOLVER_USE_GN) lambda = 0;
             if (setting_solverMode & SOLVER_FIX_LAMBDA) lambda = 1e-5;
@@ -385,10 +385,10 @@ namespace ldso {
             allPoints.clear();
 
             for (auto f: frames) {
-                for (shared_ptr<Feature> feat: f->frame->features) {
+                for (std::shared_ptr<Feature> feat: f->frame->features) {
                     if (feat->status == Feature::FeatureStatus::VALID &&
                         feat->point->status == Point::PointStatus::ACTIVE) {
-                        shared_ptr<PointHessian> p = feat->point->mpPH;
+						std::shared_ptr<PointHessian> p = feat->point->mpPH;
                         allPoints.push_back(p);
                         for (auto &r : p->residuals) {
                             r->hostIDX = r->host.lock()->idx;
@@ -400,7 +400,7 @@ namespace ldso {
             EFIndicesValid = true;
         }
 
-        void EnergyFunctional::setDeltaF(shared_ptr<CalibHessian> HCalib) {
+        void EnergyFunctional::setDeltaF(std::shared_ptr<CalibHessian> HCalib) {
             if (adHTdeltaF != 0) delete[] adHTdeltaF;
             adHTdeltaF = new Mat18f[nFrames * nFrames];
             for (int h = 0; h < nFrames; h++)
@@ -428,7 +428,7 @@ namespace ldso {
             EFDeltaValid = true;
         }
 
-        void EnergyFunctional::setAdjointsF(shared_ptr<CalibHessian> Hcalib) {
+        void EnergyFunctional::setAdjointsF(std::shared_ptr<CalibHessian> Hcalib) {
 
             if (adHost != 0) delete[] adHost;
             if (adTarget != 0) delete[] adTarget;
@@ -438,8 +438,8 @@ namespace ldso {
 
             for (int h = 0; h < nFrames; h++)
                 for (int t = 0; t < nFrames; t++) {
-                    shared_ptr<FrameHessian> host = frames[h];
-                    shared_ptr<FrameHessian> target = frames[t];
+					std::shared_ptr<FrameHessian> host = frames[h];
+					std::shared_ptr<FrameHessian> target = frames[t];
 
                     SE3 hostToTarget = target->get_worldToCam_evalPT() * host->get_worldToCam_evalPT().inverse();
 
@@ -488,7 +488,7 @@ namespace ldso {
             EFAdjointsValid = true;
         }
 
-        void EnergyFunctional::resubstituteF_MT(const VecX &x, shared_ptr<CalibHessian> HCalib, bool MT) {
+        void EnergyFunctional::resubstituteF_MT(const VecX &x, std::shared_ptr<CalibHessian> HCalib, bool MT) {
             assert(x.size() == CPARS + nFrames * 8);
 
             VecXf xF = x.cast<float>();
@@ -559,7 +559,7 @@ namespace ldso {
                 accSSE_top_A->setZero(nFrames);
                 int cntPointAdded = 0;
                 for (auto f : frames) {
-                    for (shared_ptr<Feature> &feat: f->frame->features) {
+                    for (std::shared_ptr<Feature> &feat: f->frame->features) {
                         if (feat->status == Feature::FeatureStatus::VALID && feat->point &&
                             feat->point->status == Point::PointStatus::ACTIVE) {
                             auto p = feat->point->mpPH;
@@ -638,7 +638,7 @@ namespace ldso {
                     if (!r->isLinearized || !r->isActive()) continue;
 
                     Mat18f dp = adHTdeltaF[r->hostIDX + nFrames * r->targetIDX];
-                    shared_ptr<RawResidualJacobian> rJ = r->J;
+					std::shared_ptr<RawResidualJacobian> rJ = r->J;
 
                     // compute Jp*delta
                     float Jp_delta_x_1 = rJ->Jpdxi[0].dot(dp.head<6>())

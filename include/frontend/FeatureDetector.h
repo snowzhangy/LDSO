@@ -28,14 +28,14 @@ namespace ldso {
          * @param frame input frame, feature should already be created by PixelSelector
          * @return number of selected features
          */
-        int DetectCorners(int nFeatures, shared_ptr<Frame> &frame);
+        int DetectCorners(int nFeatures, std::shared_ptr<Frame> &frame);
 
-        int ComputeDescriptor(shared_ptr<Frame> &frame, shared_ptr<Feature> feat);
+        int ComputeDescriptor(std::shared_ptr<Frame> &frame, std::shared_ptr<Feature> feat);
 
         /**
          * debug stuffs
          */
-        void DrawFeatures(shared_ptr<Frame> &frame, const string &windowName = "corner");
+        void DrawFeatures(std::shared_ptr<Frame> &frame, const std::string &windowName = "corner");
 
     private:
         /**
@@ -47,7 +47,7 @@ namespace ldso {
          * @return
          */
         inline float
-        ShiTomasiScore(shared_ptr<Frame> &frame, const float &u, const float &v, int halfbox = 4, int level = 0) {
+        ShiTomasiScore(std::shared_ptr<Frame> &frame, const float &u, const float &v, int halfbox = 4, int level = 0) {
 
             float dXX = 0.0;
             float dYY = 0.0;

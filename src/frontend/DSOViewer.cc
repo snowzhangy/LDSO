@@ -1,6 +1,5 @@
 #include <thread>
 #include <pangolin/pangolin.h>
-#include <sys/time.h>
 
 #include "Feature.h"
 #include "frontend/DSOViewer.h"
@@ -9,7 +8,7 @@
 
 namespace ldso {
 
-    void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib) {
+    void KeyFrameDisplay::setFromKF(std::shared_ptr<FrameHessian> fh, std::shared_ptr<CalibHessian> HCalib) {
 
         if (fh->frame) {
             setFromF(fh->frame, HCalib);
@@ -57,7 +56,7 @@ namespace ldso {
         needRefresh = true;
     }
 
-    void KeyFrameDisplay::setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib) {
+    void KeyFrameDisplay::setFromF(std::shared_ptr<Frame> fs, std::shared_ptr<CalibHessian> HCalib) {
 
         id = fs->id;
         fx = HCalib->fxl();
@@ -291,7 +290,7 @@ namespace ldso {
         glPopMatrix();
     }
 
-    void KeyFrameDisplay::save(ofstream &of) {
+    void KeyFrameDisplay::save(std::ofstream &of) {
         Sophus::Sim3f Swc;
         if (originFrame) {
             Swc = originFrame->getPoseOpti().inverse().cast<float>();
@@ -307,7 +306,7 @@ namespace ldso {
             float y = (originalInputSparse[i].v * fyi + cyi) * depth;
             float z = depth;
             Vec3f pw = Swc * Vec3f(x, y, z);
-            of << pw[0] << " " << pw[1] << " " << pw[2] << endl;
+            of << pw[0] << " " << pw[1] << " " << pw[2] << std::endl;
         }
     }
 
@@ -319,16 +318,16 @@ namespace ldso {
         this->h = h;
         running = true;
 
-        unique_lock<mutex> lk(openImagesMutex);
+		std::unique_lock<std::mutex> lk(openImagesMutex);
         internalVideoImg = new MinimalImageB3(w, h);
         videoImgChanged = true;
 
         internalVideoImg->setBlack();
 
         if (startRunThread)
-            runThread = thread(&PangolinDSOViewer::run, this);
+            runThread = std::thread(&PangolinDSOViewer::run, this);
 
-        currentCam = shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
+        currentCam = std::shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
     }
 
     PangolinDSOViewer::~PangolinDSOViewer() {
@@ -341,7 +340,7 @@ namespace ldso {
     void PangolinDSOViewer::run() {
 
         pangolin::CreateWindowAndBind("Main", 2 * w, 2 * h);
-        LOG(INFO) << "Create Pangolin DSO viewer" << endl;
+        LOG(INFO) << "Create Pangolin DSO viewer" << std::endl;
         const int UI_WIDTH = 180;
 
         glEnable(GL_DEPTH_TEST);
@@ -404,7 +403,7 @@ namespace ldso {
 
 
         // Default hooks for exiting (Esc) and fullscreen (tab).
-        LOG(INFO) << "Looping viewer thread" << endl;
+        LOG(INFO) << "Looping viewer thread" << std::endl;
         while (!pangolin::ShouldQuit() && running) {
             // Clear entire screen
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -415,14 +414,14 @@ namespace ldso {
                 // Activate efficiently by object
                 // render the point cloud
                 Visualization3D_display.Activate(Visualization3D_camera);
-                unique_lock<mutex> lk3d(model3DMutex);
+				std::unique_lock<std::mutex> lk3d(model3DMutex);
                 int refreshed = 0;
 
                 float yellow[3] = {1, 1, 0};
 
                 bool needRefreshAll = false;
                 {
-                    unique_lock<mutex> lck(freshMutex);
+					std::unique_lock<std::mutex> lck(freshMutex);
                     needRefreshAll = freshAll;
                 }
 
@@ -434,7 +433,7 @@ namespace ldso {
                                       this->settings_sparsity);
                         fh->drawPC(1);
                     }
-                    unique_lock<mutex> lck(freshMutex);
+					std::unique_lock<std::mutex> lck(freshMutex);
                     freshAll = false;
                 } else {
                     for (auto fh : keyframes) {
@@ -468,7 +467,7 @@ namespace ldso {
                     glLineWidth(3);
                     glBegin(GL_LINE_STRIP);
                     for (unsigned int i = 0; i < allFramePoses.size(); i++) {
-                        shared_ptr<Frame> fr = allFramePoses[i];
+						std::shared_ptr<Frame> fr = allFramePoses[i];
                         Vec3 t = fr->getPose().inverse().translation();
                         glVertex3d(t[0], t[1], t[2]);
                     }
@@ -478,7 +477,7 @@ namespace ldso {
                     glBegin(GL_LINE_STRIP);
                     glColor3f(yellow[0], yellow[1], yellow[2]);
                     for (size_t i = 0; i < keyframes.size(); i++) {
-                        shared_ptr<Frame> frame = keyframes[i]->originFrame;
+						std::shared_ptr<Frame> frame = keyframes[i]->originFrame;
                         if (frame) {
                             Vec3 t = frame->getPoseOpti().inverse().translation();
                             glVertex3d(t[0], t[1], t[2]);
@@ -491,10 +490,10 @@ namespace ldso {
                     glColor3f(yellow[0], yellow[1], yellow[2]);
                     glBegin(GL_LINES);
                     for (size_t i = 0; i < keyframes.size(); i++) {
-                        shared_ptr<Frame> frame = keyframes[i]->originFrame;
+						std::shared_ptr<Frame> frame = keyframes[i]->originFrame;
                         if (frame) {
                             Vec3 t = frame->getPoseOpti().inverse().translation();
-                            unique_lock<mutex> lck(frame->mutexPoseRel);
+							std::unique_lock<std::mutex> lck(frame->mutexPoseRel);
                             for (auto rel: frame->poseRel) {
                                 auto t2 = rel.first->getPoseOpti().inverse().translation();
                                 glVertex3d(t[0], t[1], t[2]);
@@ -517,7 +516,7 @@ namespace ldso {
 
             // video image
             {
-                unique_lock<mutex> lck(openImagesMutex);
+				std::unique_lock<std::mutex> lck(openImagesMutex);
                 if (videoImgChanged) texVideo.Upload(internalVideoImg->data, GL_BGR, GL_UNSIGNED_BYTE);
             }
 
@@ -590,17 +589,17 @@ namespace ldso {
     }
 
     void PangolinDSOViewer::publishKeyframes(
-        std::vector<shared_ptr<Frame>> &frames, bool final,
-        shared_ptr<CalibHessian> HCalib) {
+        std::vector<std::shared_ptr<Frame>> &frames, bool final,
+		std::shared_ptr<CalibHessian> HCalib) {
 
         if (!setting_render_display3D) return;
         if (disableAllDisplay) return;
 
-        unique_lock<mutex> lk(model3DMutex);
+		std::unique_lock<std::mutex> lk(model3DMutex);
         activeKFIDs.clear();
         for (auto fr :frames) {
             if (keyframesByKFID.find(fr->kfId) == keyframesByKFID.end()) {
-                shared_ptr<KeyFrameDisplay> kfd = shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
+				std::shared_ptr<KeyFrameDisplay> kfd = std::shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
                 keyframesByKFID[fr->kfId] = kfd;
                 keyframes.push_back(kfd);
             } else {
@@ -616,8 +615,8 @@ namespace ldso {
 
     void PangolinDSOViewer::reset_internal() {
 
-        LOG(INFO) << "resetting viewer" << endl;
-        unique_lock<mutex> lock(model3DMutex);
+        LOG(INFO) << "resetting viewer" << std::endl;
+		std::unique_lock<std::mutex> lock(model3DMutex);
         internalVideoImg->setBlack();
         keyframes.clear();
         keyframesByKFID.clear();
@@ -626,28 +625,34 @@ namespace ldso {
         needReset = false;
     }
 
-    void PangolinDSOViewer::publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib) {
+    void PangolinDSOViewer::publishCamPose(std::shared_ptr<Frame> frame, std::shared_ptr<CalibHessian> HCalib) {
 
         if (!setting_render_display3D)
             return;
         if (disableAllDisplay)
             return;
 
-        unique_lock<mutex> lk(model3DMutex);
-        struct timeval time_now;
-        gettimeofday(&time_now, NULL);
-        lastNTrackingMs.push_back(
-            ((time_now.tv_sec - last_track.tv_sec) * 1000.0f + (time_now.tv_usec - last_track.tv_usec) / 1000.0f));
-        if (lastNTrackingMs.size() > 10)
-            lastNTrackingMs.pop_front();
+		std::unique_lock<std::mutex> lk(model3DMutex);
+		if (first_frame) {
+			last_track = std::chrono::steady_clock::now();
+			first_frame = false;
+		}
+		auto time_now = std::chrono::steady_clock::now();
 
-        last_track = time_now;
+		std::chrono::duration<double, std::milli> fp_ms = time_now - last_track;
+		std::chrono::duration<double, std::micro> fp_us = fp_ms;
+
+		lastNTrackingMs.push_back(fp_ms.count() + (fp_us.count() / 1000.0f));
+		if (lastNTrackingMs.size() > 10)
+			lastNTrackingMs.pop_front();
+
+		last_track = time_now;
         if (currentCam)
             currentCam->setFromF(frame, HCalib);
         allFramePoses.push_back(frame);
 
         if (frame->frameHessian) {
-            unique_lock<mutex> lk(openImagesMutex);
+			std::unique_lock<std::mutex> lk(openImagesMutex);
             for (int i = 0; i < w * h; i++)
                 internalVideoImg->data[i][0] =
                 internalVideoImg->data[i][1] =
@@ -657,11 +662,11 @@ namespace ldso {
         }
     }
 
-    void PangolinDSOViewer::saveAsPLYFile(const string &file_name) {
+    void PangolinDSOViewer::saveAsPLYFile(const std::string &file_name) {
         LOG(INFO) << "save to " << file_name;
-        ofstream fout(file_name);
+		std::ofstream fout(file_name);
         if (!fout) return;
-        unique_lock<mutex> lk3d(model3DMutex);
+		std::unique_lock<std::mutex> lk3d(model3DMutex);
 
         // count number of landmarks
         int cnt_points = 0;
@@ -670,18 +675,18 @@ namespace ldso {
             cnt_points += kf->numPoints();
         }
         // header
-        fout << "ply" << endl << "format ascii 1.0" << endl
-             << "element vertex " << cnt_points << endl
-             << "property float x" << endl
-             << "property float y" << endl
-             << "property float z" << endl
-             << "end_header" << endl;
+        fout << "ply" << std::endl << "format ascii 1.0" << std::endl
+             << "element vertex " << cnt_points << std::endl
+             << "property float x" << std::endl
+             << "property float y" << std::endl
+             << "property float z" << std::endl
+             << "end_header" << std::endl;
 
         for (auto kf: keyframes) {
             kf->save(fout);
         }
         fout.close();
-        cout << "ply file is save to " << file_name << endl;
+		std::cout << "ply file is save to " << file_name << std::endl;
     }
 
 }

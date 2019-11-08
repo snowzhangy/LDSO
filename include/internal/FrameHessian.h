@@ -9,7 +9,6 @@
 
 #include "internal/FrameFramePrecalc.h"
 
-using namespace std;
 
 namespace ldso {
 
@@ -28,7 +27,7 @@ namespace ldso {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            FrameHessian(shared_ptr<Frame> frame) {
+            FrameHessian(std::shared_ptr<Frame> frame) {
                 this->frame = frame;
             }
 
@@ -124,7 +123,7 @@ namespace ldso {
              * @brief create the images and gradient from original image
              * @param [in] HCalib camera intrinsics with hessian
              */
-            void makeImages(float *image, const shared_ptr<CalibHessian> &HCalib);
+            void makeImages(float *image, const std::shared_ptr<CalibHessian> &HCalib);
 
             inline Vec10 getPrior() {
                 Vec10 p = Vec10::Zero();
@@ -159,7 +158,7 @@ namespace ldso {
 
             // Data
             int frameID = 0;              // key-frame ID, will be set when adding new keyframes
-            shared_ptr<Frame> frame = nullptr;    // link to original frame
+			std::shared_ptr<Frame> frame = nullptr;    // link to original frame
 
             // internal structures used in DSO
             // image pyramid and gradient image

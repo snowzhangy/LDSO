@@ -57,7 +57,7 @@ namespace ldso {
         Vec3 pc = Tcw * pw;
         pc = pc * (1.0 / pc[2]);
         if (pc[2] < 0) {
-            LOG(WARNING) << "invalid depth: " << pc[2] << endl;
+            LOG(WARNING) << "invalid depth: " << pc[2] << std::endl;
             depthValid = false;
             return;
         }
@@ -75,7 +75,7 @@ namespace ldso {
         pc = pc * (1.0 / pc[2]);
 
         if (pc[2] < 0) {
-            LOG(WARNING) << "invalid depth: " << pc[2] << endl;
+            LOG(WARNING) << "invalid depth: " << pc[2] << std::endl;
             setLevel(1);
             depthValid = false;
             return;

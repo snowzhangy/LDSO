@@ -11,7 +11,6 @@
 #include <thread>
 #include <mutex>
 
-using namespace std;
 using namespace ldso::internal;
 
 namespace ldso {
@@ -33,7 +32,7 @@ namespace ldso {
          * add a keyframe into the global map
          * @param kf
          */
-        void AddKeyFrame(shared_ptr<Frame> kf);
+        void AddKeyFrame(std::shared_ptr<Frame> kf);
 
         /**
          * optimize pose graph of all kfs
@@ -59,11 +58,11 @@ namespace ldso {
 
         // is pose graph running?
         bool Idle() {
-            unique_lock<mutex> lock(mutexPoseGraph);
+			std::unique_lock<std::mutex> lock(mutexPoseGraph);
             return !poseGraphRunning;
         }
 
-        set<shared_ptr<Frame>, CmpFrameID> GetAllKFs() { return frames; }
+		std::set<std::shared_ptr<Frame>, CmpFrameID> GetAllKFs() { return frames; }
 
         unsigned long getLatestOptimizedKfId() const { return latestOptimizedKfId; }
 
@@ -71,16 +70,16 @@ namespace ldso {
         // the pose graph optimization thread
         void runPoseGraphOptimization();
 
-        mutex mapMutex; // map mutex to protect its data
-        set<shared_ptr<Frame>, CmpFrameID> frames;      // all KFs by ID
-        set<shared_ptr<Frame>, CmpFrameID> framesOpti;  // KFs to be optimized
-        shared_ptr<Frame> currentKF = nullptr;
+        std::mutex mapMutex; // map mutex to protect its data
+		std::set<std::shared_ptr<Frame>, CmpFrameID> frames;      // all KFs by ID
+		std::set<std::shared_ptr<Frame>, CmpFrameID> framesOpti;  // KFs to be optimized
+		std::shared_ptr<Frame> currentKF = nullptr;
 
         // keyframe id of newest optimized keyframe frame
         unsigned long latestOptimizedKfId = 0;
 
         bool poseGraphRunning = false;  // is pose graph running?
-        mutex mutexPoseGraph;
+		std::mutex mutexPoseGraph;
 
         FullSystem *fullsystem = nullptr;
     };

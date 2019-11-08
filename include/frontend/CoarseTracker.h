@@ -37,23 +37,23 @@ namespace ldso {
          * @return true if track is good
          */
         bool trackNewestCoarse(
-                shared_ptr<FrameHessian> newFrameHessian,
+			std::shared_ptr<FrameHessian> newFrameHessian,
                 SE3 &lastToNew_out, AffLight &aff_g2l_out,
                 int coarsestLvl, Vec5 minResForAbort);
 
         void setCoarseTrackingRef(
-                std::vector<shared_ptr<FrameHessian>>& frameHessians);
+                std::vector<std::shared_ptr<FrameHessian>>& frameHessians);
 
         /**
          * Create camera intrinsics buffer given the calibrated parameters
          * @param HCalib
          */
         void makeK(
-                shared_ptr<CalibHessian> HCalib);
+			std::shared_ptr<CalibHessian> HCalib);
 
-        shared_ptr<FrameHessian> lastRef = nullptr;     // the reference frame
+		std::shared_ptr<FrameHessian> lastRef = nullptr;     // the reference frame
         AffLight lastRef_aff_g2l;                       // affine light transform
-        shared_ptr<FrameHessian> newFrame = nullptr;    // the new coming frame
+		std::shared_ptr<FrameHessian> newFrame = nullptr;    // the new coming frame
         int refFrameID = -1;
 
         // act as pure ouptut
@@ -76,7 +76,7 @@ namespace ldso {
         int h[PYR_LEVELS];
 
     private:
-        void makeCoarseDepthL0(std::vector<shared_ptr<FrameHessian>> frameHessians);
+        void makeCoarseDepthL0(std::vector<std::shared_ptr<FrameHessian>> frameHessians);
 
         /**
          * @param[in] lvl the pyramid level
@@ -136,10 +136,10 @@ namespace ldso {
         ~CoarseDistanceMap();
 
         void makeDistanceMap(
-                std::vector<shared_ptr<FrameHessian>>& frameHessians,
-                shared_ptr<FrameHessian> frame);
+                std::vector<std::shared_ptr<FrameHessian>>& frameHessians,
+			std::shared_ptr<FrameHessian> frame);
 
-        void makeK(shared_ptr<CalibHessian> HCalib);
+        void makeK(std::shared_ptr<CalibHessian> HCalib);
 
         float *fwdWarpedIDDistFinal;
 

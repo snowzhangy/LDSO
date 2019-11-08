@@ -31,20 +31,20 @@ namespace ldso {
          * @return number of selected points
          */
         int makeMaps(
-                const shared_ptr<FrameHessian> fh,
+                const std::shared_ptr<FrameHessian> fh,
                 float *map_out, float density, int recursionsLeft = 1, bool plot = false, float thFactor = 1);
 
         PixelSelector(int w, int h);
 
         ~PixelSelector();
 
-        void makeHists(shared_ptr<FrameHessian> fh);
+        void makeHists(std::shared_ptr<FrameHessian> fh);
 
         int currentPotential;
         bool allowFast = false;
     private:
 
-        Eigen::Vector3i select(const shared_ptr<FrameHessian> fh,
+        Eigen::Vector3i select(const std::shared_ptr<FrameHessian> fh,
                                float *map_out, int pot, float thFactor = 1);
 
 
@@ -54,7 +54,7 @@ namespace ldso {
         float *ths = nullptr;
         float *thsSmoothed = nullptr;
         int thsStep = 0;
-        shared_ptr<FrameHessian> gradHistFrame = nullptr;
+		std::shared_ptr<FrameHessian> gradHistFrame = nullptr;
     };
 
     // from pixel selector.h

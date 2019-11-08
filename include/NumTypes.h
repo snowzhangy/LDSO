@@ -10,11 +10,10 @@
 
 #include <memory>
 
-using namespace std;
 
 #include <glog/logging.h>
 
-#include "DBoW3/src/DBoW3.h"
+#include "DBoW3/DBoW3.h"
 
 // pose represented as sophus structs
 typedef Sophus::SE3d SE3;
@@ -119,10 +118,10 @@ typedef Eigen::Matrix<float, 14, 1> Vec14f;
 typedef Eigen::Matrix<unsigned char, 3, 1> Vec3b;
 
 // Vector of Eigen vectors
-typedef vector<Vec2, Eigen::aligned_allocator<Vec2>> VecVec2;
-typedef vector<Vec3, Eigen::aligned_allocator<Vec3>> VecVec3;
-typedef vector<Vec2f, Eigen::aligned_allocator<Vec2f>> VecVec2f;
-typedef vector<Vec3f, Eigen::aligned_allocator<Vec3f>> VecVec3f;
+typedef std::vector<Vec2, Eigen::aligned_allocator<Vec2>> VecVec2;
+typedef std::vector<Vec3, Eigen::aligned_allocator<Vec3>> VecVec3;
+typedef std::vector<Vec2f, Eigen::aligned_allocator<Vec2f>> VecVec2f;
+typedef std::vector<Vec3f, Eigen::aligned_allocator<Vec3f>> VecVec3f;
 
 // DBoW vocabulary
 typedef DBoW3::Vocabulary ORBVocabulary;

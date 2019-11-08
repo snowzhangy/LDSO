@@ -34,8 +34,8 @@ namespace ldso {
         }
     }
 
-    void Frame::CreateFH(shared_ptr<Frame> frame) {
-        frameHessian = shared_ptr<internal::FrameHessian>(new internal::FrameHessian(frame));
+    void Frame::CreateFH(std::shared_ptr<Frame> frame) {
+        frameHessian = std::shared_ptr<internal::FrameHessian>(new internal::FrameHessian(frame));
     }
 
     void Frame::SetFeatureGrid() {
@@ -51,21 +51,21 @@ namespace ldso {
         }
     }
 
-    vector<size_t> Frame::GetFeatureInGrid(const float &x, const float &y, const float &radius) {
-        vector<size_t> indices;
+	std::vector<size_t> Frame::GetFeatureInGrid(const float &x, const float &y, const float &radius) {
+		std::vector<size_t> indices;
         int gw = wG[0] / gridSize, gh = hG[0] / gridSize;
 
-        int gridXmin = max(0, int(x - radius) / gridSize);
+        int gridXmin = std::max(0, int(x - radius) / gridSize);
         if (gridXmin >= gw)
             return indices;
-        int gridXmax = min(gw - 1, int(x + radius) / gridSize);
+        int gridXmax = std::min(gw - 1, int(x + radius) / gridSize);
         if (gridXmax < 0)
             return indices;
 
-        int gridYmin = max(0, int(y - radius) / gridSize);
+        int gridYmin = std::max(0, int(y - radius) / gridSize);
         if (gridYmin >= gh)
             return indices;
-        int gridYmax = min(gh - 1, int(y + radius) / gridSize);
+        int gridYmax = std::min(gh - 1, int(y + radius) / gridSize);
         if (gridYmax < 0)
             return indices;
 
@@ -73,7 +73,7 @@ namespace ldso {
 
         for (int ix = gridXmin; ix <= gridXmax; ix++)
             for (int iy = gridYmin; iy <= gridYmax; iy++) {
-                const vector<size_t> cell = grid[iy * gw + ix];
+                const std::vector<size_t> cell = grid[iy * gw + ix];
                 for (auto &k: cell) {
                     float u = features[k]->uv[0];
                     float v = features[k]->uv[1];
@@ -85,9 +85,9 @@ namespace ldso {
         return indices;
     }
 
-    void Frame::ComputeBoW(shared_ptr<ORBVocabulary> voc) {
+    void Frame::ComputeBoW(std::shared_ptr<ORBVocabulary> voc) {
         // convert corners into BoW
-        vector<cv::Mat> allDesp;
+		std::vector<cv::Mat> allDesp;
         for (size_t i = 0; i < features.size(); i++) {
             auto &feat = features[i];
             if (feat->isCorner) {
@@ -101,15 +101,15 @@ namespace ldso {
         voc->transform(allDesp, bowVec, featVec, 4);
     }
 
-    set<shared_ptr<Frame>> Frame::GetConnectedKeyFrames() {
-        set<shared_ptr<Frame>> connectedFrames;
+	std::set<std::shared_ptr<Frame>> Frame::GetConnectedKeyFrames() {
+		std::set<std::shared_ptr<Frame>> connectedFrames;
         for (auto &rel: poseRel)
             connectedFrames.insert(rel.first);
         return connectedFrames;
     }
 
-    vector<shared_ptr<Point>> Frame::GetPoints() {
-        vector<shared_ptr<Point>> pts;
+	std::vector<std::shared_ptr<Point>> Frame::GetPoints() {
+		std::vector<std::shared_ptr<Point>> pts;
         for (auto &feat: features) {
             if (feat->status == Feature::FeatureStatus::VALID) {
                 pts.push_back(feat->point);
@@ -118,7 +118,7 @@ namespace ldso {
         return pts;
     }
 
-    void Frame::save(ofstream &fout) {
+    void Frame::save(std::ofstream &fout) {
 
         fout.write((char *) &id, sizeof(id));
         fout.write((char *) &kfId, sizeof(kfId));
@@ -149,7 +149,7 @@ namespace ldso {
 
     }
 
-    void Frame::load(ifstream &fin, shared_ptr<Frame> &thisFrame, vector<shared_ptr<Frame>> &allKF) {
+    void Frame::load(std::ifstream &fin, std::shared_ptr<Frame> &thisFrame, std::vector<std::shared_ptr<Frame>> &allKF) {
 
         fin.read((char *) &id, sizeof(id));
         fin.read((char *) &kfId, sizeof(kfId));
@@ -167,7 +167,7 @@ namespace ldso {
         fin.read((char *) &nufeatures, sizeof(int));
         features.resize(nufeatures, nullptr);
         for (auto &feat: features) {
-            feat = shared_ptr<Feature>(new Feature(0, 0, thisFrame));
+            feat = std::shared_ptr<Feature>(new Feature(0, 0, thisFrame));
         }
 
         int n = 0;

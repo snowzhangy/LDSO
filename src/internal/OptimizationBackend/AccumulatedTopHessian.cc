@@ -6,7 +6,7 @@ namespace ldso {
     namespace internal {
 
         template<int mode>
-        void AccumulatedTopHessianSSE::addPoint(shared_ptr<PointHessian> p, EnergyFunctional const *const ef,
+        void AccumulatedTopHessianSSE::addPoint(std::shared_ptr<PointHessian> p, EnergyFunctional const *const ef,
                                                 int tid) { // 0 = active, 1 = linearized, 2=marginalize
 
 
@@ -19,7 +19,7 @@ namespace ldso {
             float Hdd_acc = 0;
             VecCf Hcd_acc = VecCf::Zero();
 
-            for (shared_ptr<PointFrameResidual> &r : p->residuals) {
+            for (std::shared_ptr<PointFrameResidual> &r : p->residuals) {
                 if (mode == 0) {
                     if (r->isLinearized || !r->isActive())
                         continue;
@@ -34,7 +34,7 @@ namespace ldso {
                     assert(r->isLinearized);
                 }
 
-                shared_ptr<RawResidualJacobian> rJ = r->J;
+				std::shared_ptr<RawResidualJacobian> rJ = r->J;
                 int htIDX = r->hostIDX + r->targetIDX * nframes[tid];
                 Mat18f dp = ef->adHTdeltaF[htIDX];
 
@@ -118,13 +118,13 @@ namespace ldso {
         }
 
         template void
-        AccumulatedTopHessianSSE::addPoint<0>(shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
+        AccumulatedTopHessianSSE::addPoint<0>(std::shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
 
         template void
-        AccumulatedTopHessianSSE::addPoint<1>(shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
+        AccumulatedTopHessianSSE::addPoint<1>(std::shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
 
         template void
-        AccumulatedTopHessianSSE::addPoint<2>(shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
+        AccumulatedTopHessianSSE::addPoint<2>(std::shared_ptr<PointHessian> p, EnergyFunctional const *const ef, int tid);
 
         void AccumulatedTopHessianSSE::stitchDouble(MatXX &H, VecX &b, EnergyFunctional const *const EF, bool usePrior,
                                                     bool useDelta, int tid) {

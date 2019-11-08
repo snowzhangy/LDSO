@@ -41,7 +41,7 @@ namespace ldso {
             nullspaces_affine.topRightCorner<2, 1>() = Vec2(0, expf(aff_g2l_0().a) * ab_exposure);
         }
 
-        void FrameHessian::makeImages(float *color, const shared_ptr<CalibHessian> &HCalib) {
+        void FrameHessian::makeImages(float *color, const std::shared_ptr<CalibHessian> &HCalib) {
 
             for (int i = 0; i < pyrLevelsUsed; i++) {
                 dIp[i] = new Eigen::Vector3f[wG[i] * hG[i]];
