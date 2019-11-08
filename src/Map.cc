@@ -30,7 +30,7 @@ namespace ldso {
         LOG(INFO) << "Final pose graph optimization after odometry is finished.";
 
         {
-            unique_lock<mutex> lock(mutexPoseGraph);
+            std::unique_lock< std::mutex> lock(mutexPoseGraph);
             if (poseGraphRunning) {
                 LOG(FATAL) << "Should not be called while pose graph optimization is running";
             }

@@ -24,6 +24,7 @@ list(APPEND CMAKE_CXX_FLAGS ${SSE_FLAGS})
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+	add_definitions(/MP)
 endif (MSVC)
 
 
